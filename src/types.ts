@@ -121,6 +121,12 @@ export interface Game {
     rating: number;
   };
   scheduledTime: string;
+  // Always Factual Date & Time Precision
+  startTimeUtc?: string; // ISO 8601 string, e.g. "2026-09-14T23:05:00.000Z"
+  gameDate?: string; // YYYY-MM-DD, e.g. "2026-09-14"
+  displayDate?: string; // e.g. "Mon, Sep 14, 2026"
+  displayTime?: string; // e.g. "7:05 PM EDT"
+  timeZone?: string; // e.g. "EDT" or "EST"
   status: 'UPCOMING' | 'LIVE' | 'FINAL';
   venue: string;
   weather: WeatherVariables;
@@ -591,6 +597,10 @@ export interface MatchSearchResult {
   matchupTitle: string;
   subTitle: string;
   scheduledTime: string;
+  startTimeUtc?: string;
+  gameDate?: string;
+  displayDate?: string;
+  displayTime?: string;
   status: 'LIVE' | 'UPCOMING' | 'FINAL';
   venueOrTable: string;
   marketDetails: {
@@ -609,6 +619,11 @@ export interface TableTennisMatchScheduled {
   tournament: string; // e.g. "Pandora / Setka Cup Challenger", "TT Elite Series Prague"
   tableNumber: string;
   scheduledTime: string;
+  startTimeUtc?: string;
+  gameDate?: string;
+  displayDate?: string;
+  displayTime?: string;
+  timeZone?: string;
   status: 'UPCOMING' | 'LIVE' | 'FINAL';
   p1: TableTennisPlayer;
   p2: TableTennisPlayer;

@@ -350,6 +350,34 @@ function transformEspnEventToGame(event: EspnEvent, sport: SportType, sourceUrl?
 
   const playerProps: PlayerPropTarget[] = [];
 
+  // Factual Date & Time Precision
+  const rawDateStr = event.date || new Date().toISOString();
+  const parsedDate = new Date(rawDateStr);
+  const validDate = isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+  const startTimeUtc = validDate.toISOString();
+  const gameDate = startTimeUtc.slice(0, 10);
+  
+  const displayDate = validDate.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'America/New_York'
+  });
+  const displayTime = validDate.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'America/New_York',
+    timeZoneName: 'short'
+  });
+
+  const scheduledTime = status === 'LIVE'
+    ? `🔴 LIVE (${event.status?.type?.detail || 'In Progress'}) • Started ${displayTime}`
+    : status === 'FINAL'
+    ? `FINAL • ${displayDate} at ${displayTime}`
+    : `${displayDate} • ${displayTime}`;
+
   // Construct game object
   const game: Game = {
     id: `${sport.toLowerCase()}-espn-${event.id}`,
@@ -368,11 +396,13 @@ function transformEspnEventToGame(event: EspnEvent, sport: SportType, sourceUrl?
       starterOrQb: awayStarter,
       rating: baseAwayRating,
     },
-    scheduledTime: status === 'LIVE' 
-      ? `🔴 LIVE (${event.status?.type?.detail || 'In Progress'})` 
-      : status === 'FINAL' 
-      ? 'FINAL' 
-      : event.date ? new Date(event.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' }) : 'Upcoming',
+    // Factual Date & Time Precision
+    startTimeUtc,
+    gameDate,
+    displayDate,
+    displayTime,
+    timeZone: 'EDT',
+    scheduledTime,
     status,
     venue: venueName,
     weather,

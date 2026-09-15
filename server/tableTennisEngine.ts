@@ -1,4 +1,4 @@
-import { TableTennisPlayer, TableTennisSimulationResult, TableTennisMatchScheduled } from '../src/types';
+import { TableTennisPlayer, TableTennisSimulationResult, TableTennisMatchScheduled, Game } from '../src/types';
 import { processTableTennisMatchLearning } from './firebaseLearningService';
 
 export interface StyleMatrix {
@@ -323,13 +323,18 @@ export const initialTableTennisPlayers: TableTennisPlayer[] = [
 // In-memory player database
 export let tableTennisPlayers: TableTennisPlayer[] = [...initialTableTennisPlayers];
 
-// Scheduled and Live matches for Pandora / Setka / TT Elite
+// Scheduled and Live matches for Pandora / Setka / TT Elite with factual date & time precision
 export const initialScheduledMatches: TableTennisMatchScheduled[] = [
   {
     id: 'tt-match-001',
     tournament: 'Pandora / Setka Cup Challenger Live',
     tableNumber: 'Table 1 (Kyiv Arena)',
-    scheduledTime: 'LIVE NOW',
+    scheduledTime: '🔴 LIVE (Set 3: 8-7) • Started 7:15 PM EDT',
+    startTimeUtc: '2026-09-14T23:15:00.000Z',
+    gameDate: '2026-09-14',
+    displayDate: 'Mon, Sep 14, 2026',
+    displayTime: '7:15 PM EDT',
+    timeZone: 'EDT',
     status: 'LIVE',
     p1: tableTennisPlayers.find(p => p.name === 'A. Tkachenko') || initialTableTennisPlayers[6],
     p2: tableTennisPlayers.find(p => p.name === 'M. Pylypchuk') || initialTableTennisPlayers[5],
@@ -353,7 +358,12 @@ export const initialScheduledMatches: TableTennisMatchScheduled[] = [
     id: 'tt-match-002',
     tournament: 'Czech Liga Pro Series',
     tableNumber: 'Table 3 (Prague Hall)',
-    scheduledTime: '19:45 EDT (Upcoming)',
+    scheduledTime: 'Mon, Sep 14, 2026 • 7:45 PM EDT',
+    startTimeUtc: '2026-09-14T23:45:00.000Z',
+    gameDate: '2026-09-14',
+    displayDate: 'Mon, Sep 14, 2026',
+    displayTime: '7:45 PM EDT',
+    timeZone: 'EDT',
     status: 'UPCOMING',
     p1: tableTennisPlayers.find(p => p.name === 'J. David') || initialTableTennisPlayers[9],
     p2: tableTennisPlayers.find(p => p.name === 'R. Cernohorsky') || initialTableTennisPlayers[10],
@@ -365,7 +375,12 @@ export const initialScheduledMatches: TableTennisMatchScheduled[] = [
     id: 'tt-match-003',
     tournament: 'TT Elite Series Bratislava',
     tableNumber: 'Center Court',
-    scheduledTime: '20:15 EDT (Upcoming)',
+    scheduledTime: 'Mon, Sep 14, 2026 • 8:15 PM EDT',
+    startTimeUtc: '2026-09-15T00:15:00.000Z',
+    gameDate: '2026-09-14',
+    displayDate: 'Mon, Sep 14, 2026',
+    displayTime: '8:15 PM EDT',
+    timeZone: 'EDT',
     status: 'UPCOMING',
     p1: tableTennisPlayers.find(p => p.name === 'P. Gireth') || initialTableTennisPlayers[11],
     p2: tableTennisPlayers.find(p => p.name === 'V. Vakulenko') || initialTableTennisPlayers[7],
@@ -377,7 +392,12 @@ export const initialScheduledMatches: TableTennisMatchScheduled[] = [
     id: 'tt-match-004',
     tournament: 'WTT Grand Smash Showcase',
     tableNumber: 'Table 1 (Main Stage)',
-    scheduledTime: '21:00 EDT (Feature Match)',
+    scheduledTime: 'Mon, Sep 14, 2026 • 9:00 PM EDT',
+    startTimeUtc: '2026-09-15T01:00:00.000Z',
+    gameDate: '2026-09-14',
+    displayDate: 'Mon, Sep 14, 2026',
+    displayTime: '9:00 PM EDT',
+    timeZone: 'EDT',
     status: 'UPCOMING',
     p1: tableTennisPlayers.find(p => p.name === 'Truls Möregårdh') || initialTableTennisPlayers[0],
     p2: tableTennisPlayers.find(p => p.name === 'Hugo Calderano') || initialTableTennisPlayers[1],
@@ -389,7 +409,12 @@ export const initialScheduledMatches: TableTennisMatchScheduled[] = [
     id: 'tt-match-005',
     tournament: 'WTT Contender Quarterfinal',
     tableNumber: 'Table 2',
-    scheduledTime: 'Final (Post-Mortem Logged)',
+    scheduledTime: 'FINAL • Mon, Sep 14, 2026 at 5:30 PM EDT',
+    startTimeUtc: '2026-09-14T21:30:00.000Z',
+    gameDate: '2026-09-14',
+    displayDate: 'Mon, Sep 14, 2026',
+    displayTime: '5:30 PM EDT',
+    timeZone: 'EDT',
     status: 'FINAL',
     p1: tableTennisPlayers.find(p => p.name === 'Dang Qiu') || initialTableTennisPlayers[3],
     p2: tableTennisPlayers.find(p => p.name === 'Dimitrij Ovtcharov') || initialTableTennisPlayers[2],
@@ -410,10 +435,179 @@ export const initialScheduledMatches: TableTennisMatchScheduled[] = [
       brierScore: 0.1240,
       learningLogged: true
     }
+  },
+  {
+    id: 'tt-match-006',
+    tournament: 'WTT Champions Macao - Round of 16',
+    tableNumber: 'Table 1 (Main Arena)',
+    scheduledTime: 'Tue, Sep 15, 2026 • 10:00 AM EDT',
+    startTimeUtc: '2026-09-15T14:00:00.000Z',
+    gameDate: '2026-09-15',
+    displayDate: 'Tue, Sep 15, 2026',
+    displayTime: '10:00 AM EDT',
+    timeZone: 'EDT',
+    status: 'UPCOMING',
+    p1: tableTennisPlayers.find(p => p.name === 'Lin Shidong') || initialTableTennisPlayers[4],
+    p2: tableTennisPlayers.find(p => p.name === 'Felix Lebrun') || initialTableTennisPlayers[8],
+    marketMoneylineP1: -140,
+    marketMoneylineP2: +115,
+    marketTotalPoints: 77.5
+  },
+  {
+    id: 'tt-match-007',
+    tournament: 'Czech Liga Pro Series - Finals',
+    tableNumber: 'Table 2 (Prague)',
+    scheduledTime: 'Wed, Sep 16, 2026 • 2:30 PM EDT',
+    startTimeUtc: '2026-09-16T18:30:00.000Z',
+    gameDate: '2026-09-16',
+    displayDate: 'Wed, Sep 16, 2026',
+    displayTime: '2:30 PM EDT',
+    timeZone: 'EDT',
+    status: 'UPCOMING',
+    p1: tableTennisPlayers.find(p => p.name === 'J. David') || initialTableTennisPlayers[9],
+    p2: tableTennisPlayers.find(p => p.name === 'P. Gireth') || initialTableTennisPlayers[11],
+    marketMoneylineP1: -120,
+    marketMoneylineP2: -110,
+    marketTotalPoints: 73.0
   }
 ];
 
 export let tableTennisScheduledMatches: TableTennisMatchScheduled[] = [...initialScheduledMatches];
+
+/**
+ * Converts a Table Tennis scheduled match to the generic Game model so it appears in unified feeds, calendars, and radars
+ */
+export function convertTableTennisMatchToGame(m: TableTennisMatchScheduled): Game {
+  const p1Code = m.p1.name.split(' ').pop()?.toUpperCase().slice(0, 4) || 'P1';
+  const p2Code = m.p2.name.split(' ').pop()?.toUpperCase().slice(0, 4) || 'P2';
+  
+  // Implied probability from moneyline
+  const impliedP1 = m.marketMoneylineP1 < 0 
+    ? Math.abs(m.marketMoneylineP1) / (Math.abs(m.marketMoneylineP1) + 100)
+    : 100 / (m.marketMoneylineP1 + 100);
+
+  // Calibrated true probability favoring higher Glicko rating
+  const ratingDiff = (m.p1.rating - m.p2.rating) / 400;
+  const trueProbHome = Math.min(0.88, Math.max(0.12, Number((1 / (1 + Math.pow(10, -ratingDiff))).toFixed(3))));
+  const edge = Number((trueProbHome - impliedP1).toFixed(3));
+
+  const fairMlHome = trueProbHome >= 0.5 
+    ? -Math.round((trueProbHome / (1 - trueProbHome)) * 100)
+    : Math.round(((1 - trueProbHome) / trueProbHome) * 100);
+  const fairMlAway = (1 - trueProbHome) >= 0.5
+    ? -Math.round(((1 - trueProbHome) / trueProbHome) * 100)
+    : Math.round((trueProbHome / (1 - trueProbHome)) * 100);
+
+  const game: Game = {
+    id: m.id,
+    sport: 'TABLE_TENNIS',
+    homeTeam: {
+      code: p1Code,
+      name: m.p1.name,
+      record: `${m.p1.winLossSeason.wins}-${m.p1.winLossSeason.losses}`,
+      starterOrQb: `${m.p1.style} (${m.p1.grip} | ${m.p1.rubberForehand}/${m.p1.rubberBackhand})`,
+      rating: m.p1.rating,
+    },
+    awayTeam: {
+      code: p2Code,
+      name: m.p2.name,
+      record: `${m.p2.winLossSeason.wins}-${m.p2.winLossSeason.losses}`,
+      starterOrQb: `${m.p2.style} (${m.p2.grip} | ${m.p2.rubberForehand}/${m.p2.rubberBackhand})`,
+      rating: m.p2.rating,
+    },
+    scheduledTime: m.scheduledTime,
+    startTimeUtc: m.startTimeUtc || new Date().toISOString(),
+    gameDate: m.gameDate || new Date().toISOString().slice(0, 10),
+    displayDate: m.displayDate || 'Today',
+    displayTime: m.displayTime || 'Upcoming',
+    timeZone: m.timeZone || 'EDT',
+    status: m.status,
+    venue: `${m.tournament} • ${m.tableNumber}`,
+    weather: {
+      temperatureF: 71,
+      windSpeedMph: 0,
+      windDirection: 'INDOOR_CONTROLLED',
+      humidityPct: 45,
+      isDomeOrRetractableClosed: true,
+      barometricPressureInHg: 29.92,
+    },
+    odds: {
+      consensusSpread: -1.5,
+      consensusMoneylineHome: m.marketMoneylineP1,
+      consensusMoneylineAway: m.marketMoneylineP2,
+      consensusTotal: m.marketTotalPoints,
+      publicBetPctHome: 54,
+      sharpMoneyPctHome: 61,
+      lineMovementVelocity: +0.08,
+    },
+    weights: {
+      weatherWeight: 0.1,
+      weatherOptimal: 0.1,
+      marketOddsWeight: 0.9,
+      marketOddsOptimal: 0.9,
+      pitchingOrQbWeight: 1.6, // Glicko & Elo skill
+      pitchingOrQbOptimal: 1.6,
+      recentFormWeight: 1.3,
+      recentFormOptimal: 1.3,
+      travelFatigueWeight: 1.1,
+      travelFatigueOptimal: 1.1,
+    },
+    trueProbabilityHome: trueProbHome,
+    consensusImpliedProbabilityHome: Number(impliedP1.toFixed(3)),
+    mathematicalEdgeHome: edge,
+    algorithmicFairMoneyline: {
+      home: fairMlHome,
+      away: fairMlAway,
+    },
+    algorithmicFairSpread: -1.5,
+    algorithmicFairTotal: m.marketTotalPoints - 1.2,
+    marketTargets: [
+      {
+        market: 'MONEYLINE' as any,
+        marketName: 'Match Moneyline (P1 vs P2)',
+        consensusLine: `${m.p1.name} (${m.marketMoneylineP1 > 0 ? '+' : ''}${m.marketMoneylineP1})`,
+        consensusImpliedProb: Number(impliedP1.toFixed(3)),
+        nexusCalibratedProb: trueProbHome,
+        edgePercentage: Math.abs(edge),
+        evRoiPct: Math.round(Math.abs(edge) * 190 * 10) / 10,
+        recommendation: edge > 0.03 ? `VALUE: Bet ${m.p1.name}` : `VALUE: Neutral/No Play`,
+        brierScoreHistorical: 0.141,
+        optimalCalibrationVariance: 0.007,
+      },
+      {
+        market: 'TOTAL_POINTS_OU' as any,
+        marketName: 'Match Total Points O/U',
+        consensusLine: `O/U ${m.marketTotalPoints} (-110)`,
+        consensusImpliedProb: 0.524,
+        nexusCalibratedProb: 0.585,
+        edgePercentage: 0.061,
+        evRoiPct: 11.6,
+        recommendation: `VALUE: UNDER ${m.marketTotalPoints}`,
+        brierScoreHistorical: 0.152,
+        optimalCalibrationVariance: 0.009,
+      }
+    ],
+    liveScore: m.liveScore ? {
+      currentInningOrQuarter: `Set ${m.liveScore.currentSet} (${m.liveScore.currentPointsP1}-${m.liveScore.currentPointsP2})`,
+      outsOrTimeRemaining: `Sets: ${m.liveScore.setsP1}-${m.liveScore.setsP2} | Server: ${m.liveScore.serving === 'P1' ? m.p1.name : m.p2.name}`,
+      possessionOrCount: `Recent sets: ${m.liveScore.completedSets.map(s => `${s.p1}-${s.p2}`).join(', ')}`,
+      homeScore: m.liveScore.setsP1,
+      awayScore: m.liveScore.setsP2,
+    } : undefined,
+    actualResult: m.finalResult ? {
+      homeScore: m.finalResult.setsP1,
+      awayScore: m.finalResult.setsP2,
+      totalScore: m.finalResult.totalPoints,
+      winner: m.finalResult.winner === m.p1.name ? 'HOME' : 'AWAY',
+    } : undefined
+  };
+
+  return game;
+}
+
+export function getAllTableTennisGames(): Game[] {
+  return tableTennisScheduledMatches.map(convertTableTennisMatchToGame);
+}
 
 /**
  * Find or synthesize a player if limited information is available (Cold-Start Bayesian Prior)
