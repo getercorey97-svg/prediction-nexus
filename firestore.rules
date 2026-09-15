@@ -1,20 +1,55 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /test/{docId} {
-      allow read, write: if true;
+
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
     }
+
+    function isTimestampString(val) {
+      return val is string && val.size() >= 10 && val.size() <= 40;
+    }
+
+    // Prediction Records: Publicly readable audit log; writes must satisfy strict schema to prevent data falsification
     match /prediction_records/{recordId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create, update: if request.resource.data.gameId is string
+        && request.resource.data.sport in ['MLB', 'NFL', 'CFB', 'TABLE_TENNIS']
+        && isValidString(request.resource.data.matchup, 3, 150)
+        && request.resource.data.brierScore is number
+        && request.resource.data.brierScore >= 0.0 && request.resource.data.brierScore <= 2.0
+        && isTimestampString(request.resource.data.timestamp);
+      allow delete: if false;
     }
+
+    // Sport Calibrations: Publicly readable; writes must contain valid weights and bounds
     match /sport_calibrations/{sportId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create, update: if sportId in ['MLB', 'NFL', 'CFB', 'TABLE_TENNIS']
+        && request.resource.data.sport == sportId
+        && request.resource.data.weights is map
+        && request.resource.data.weights.weatherWeight is number
+        && request.resource.data.weights.weatherWeight >= 0.05
+        && request.resource.data.weights.marketOddsWeight is number
+        && request.resource.data.weights.marketOddsWeight >= 0.05
+        && request.resource.data.weights.pitchingOrQbWeight is number
+        && request.resource.data.weights.pitchingOrQbWeight >= 0.05;
+      allow delete: if false;
     }
+
+    // Learning Events: Publicly readable audit trail; append-only, validated schema, strictly no deletion
     match /learning_events/{eventId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create: if isValidString(request.resource.data.id, 3, 100)
+        && request.resource.data.sport in ['MLB', 'NFL', 'CFB', 'TABLE_TENNIS']
+        && isValidString(request.resource.data.eventDescription, 5, 500)
+        && isTimestampString(request.resource.data.timestamp);
+      allow update, delete: if false;
     }
+
     match /{document=**} {
       allow read, write: if false;
     }
   }
 }
+

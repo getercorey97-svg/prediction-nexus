@@ -12,6 +12,8 @@ import { BacktestCalibrationHub } from './components/BacktestCalibrationHub';
 import { SelfModificationViewer } from './components/SelfModificationViewer';
 import { MonorepoViewer } from './components/MonorepoViewer';
 import { AccuracyAndLearningHub } from './components/AccuracyAndLearningHub';
+import { AutonomousLearningHub } from './components/AutonomousLearningHub';
+import { ValueBetsRadarHub } from './components/ValueBetsRadarHub';
 import { TableTennisDashboard } from './components/TableTennisDashboard';
 import { AfterHoursDiscoveryHub } from './components/AfterHoursDiscoveryHub';
 import { MatchSearchModal } from './components/MatchSearchModal';
@@ -495,10 +497,45 @@ export default function App() {
             <SelfModificationViewer />
           )}
 
-          {/* VIEW: ACCURACY RECORD & AUTONOMOUS LEARNING HUB */}
+          {/* VIEW: VALUE BETS & PORTFOLIO SLIP RADAR */}
+          {user.isAuthenticated && currentView === 'VALUE_BETS' && (
+            <ValueBetsRadarHub
+              games={games}
+              onNavigateToGame={(gameId, sport) => {
+                setSelectedGameId(gameId);
+                setActiveSport(sport);
+                setCurrentView(sport);
+              }}
+              onNavigateToTableTennis={() => {
+                setActiveSport('TABLE_TENNIS');
+                setCurrentView('TABLE_TENNIS');
+              }}
+            />
+          )}
+
+          {/* VIEW: ACCURACY RECORD & PERFORMANCE AUDIT HUB */}
           {user.isAuthenticated && currentView === 'ACCURACY_LEDGER' && (
             <AccuracyAndLearningHub
               initialSport={activeSport}
+              onNavigateToSport={(sport) => {
+                setActiveSport(sport);
+                setCurrentView(sport);
+                const firstOfSport = games.find(g => g.sport === sport);
+                if (firstOfSport) setSelectedGameId(firstOfSport.id);
+              }}
+              onNavigateToBacktest={(sport) => {
+                if (sport) setActiveSport(sport);
+                setCurrentView('BACKTEST_CALIBRATION');
+              }}
+              onNavigateToLearningEngine={() => {
+                setCurrentView('LEARNING_ENGINE');
+              }}
+            />
+          )}
+
+          {/* VIEW: AUTONOMOUS LEARNING DAEMON & CLOUD WEIGHTS */}
+          {user.isAuthenticated && currentView === 'LEARNING_ENGINE' && (
+            <AutonomousLearningHub
               onNavigateToSport={(sport) => {
                 setActiveSport(sport);
                 setCurrentView(sport);

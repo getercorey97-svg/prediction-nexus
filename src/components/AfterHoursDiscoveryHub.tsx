@@ -69,6 +69,15 @@ export const AfterHoursDiscoveryHub: React.FC<AfterHoursDiscoveryHubProps> = ({
     activeVariablesApplied: number;
   } | null>(null);
 
+  // Batch Test & Inject All Curated Suggestions State
+  const [isTestingAllSuggestions, setIsTestingAllSuggestions] = useState(false);
+  const [batchSuggestionsProgress, setBatchSuggestionsProgress] = useState<string | null>(null);
+  const [batchSuggestionsSummary, setBatchSuggestionsSummary] = useState<{
+    tested: number;
+    approved: number;
+    injected: string[];
+  } | null>(null);
+
   // Curated Hypothesis Presets
   const hypothesisPresets = [
     {
@@ -205,6 +214,49 @@ export const AfterHoursDiscoveryHub: React.FC<AfterHoursDiscoveryHubProps> = ({
       });
       setSimRunning(false);
     }, 900);
+  };
+
+  // Test & Inject All 6 Curated Hypothesis Suggestions
+  const handleTestAndInjectAllSuggestions = async () => {
+    setIsTestingAllSuggestions(true);
+    setBatchSuggestionsSummary(null);
+    let approvedCount = 0;
+    const injectedNames: string[] = [];
+
+    for (let i = 0; i < hypothesisPresets.length; i++) {
+      const preset = hypothesisPresets[i];
+      setBatchSuggestionsProgress(`Testing theory ${i + 1}/${hypothesisPresets.length}: "${preset.title}"...`);
+      try {
+        const res = await fetch('/api/after-hours/test-hypothesis', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            hypothesisText: preset.text,
+            sport: preset.sport,
+            targetMetric: preset.metric
+          })
+        });
+        if (res.ok) {
+          const data: HypothesisTestResult = await res.json();
+          if (data.verdict === 'APPROVED_AND_INJECTED') {
+            approvedCount++;
+            injectedNames.push(`${preset.sport}: ${data.variableName} (+${data.injectedWeight})`);
+          }
+        }
+      } catch (err) {
+        console.error('Batch hypothesis test error:', err);
+      }
+      await new Promise(r => setTimeout(r, 220));
+    }
+
+    await fetchRegistryAndStream();
+    setIsTestingAllSuggestions(false);
+    setBatchSuggestionsProgress(null);
+    setBatchSuggestionsSummary({
+      tested: hypothesisPresets.length,
+      approved: approvedCount,
+      injected: injectedNames
+    });
   };
 
   return (
@@ -350,11 +402,49 @@ export const AfterHoursDiscoveryHub: React.FC<AfterHoursDiscoveryHubProps> = ({
       {activeTab === 'HYPOTHESIS_LAB' && (
         <div className="space-y-6">
           {/* Preset Prompts Bar */}
-          <div className="space-y-2">
-            <span className="text-xs font-medium text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Curated Theories & Discovery Ideas (Click to Test Instantly):</span>
-            </span>
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span className="text-xs font-medium text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Curated Theories & Discovery Ideas:</span>
+              </span>
+
+              <button
+                onClick={handleTestAndInjectAllSuggestions}
+                disabled={isTestingAllSuggestions}
+                className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 via-purple-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 disabled:opacity-50 text-white text-xs font-mono font-bold flex items-center space-x-1.5 transition-all shadow-md cursor-pointer self-start sm:self-auto"
+                title="Batch test all curated suggestions through 3-tier validation and inject passing alpha into production"
+              >
+                <Zap className={`w-3.5 h-3.5 text-amber-300 ${isTestingAllSuggestions ? 'animate-bounce' : ''}`} />
+                <span>{isTestingAllSuggestions ? 'EVALUATING ALL THEORIES...' : '⚡ TEST & INJECT ALL 6 SUGGESTIONS'}</span>
+              </button>
+            </div>
+
+            {/* Batch Progress Notice */}
+            {batchSuggestionsProgress && (
+              <div className="p-3 rounded-xl bg-indigo-950/70 border border-indigo-500/40 text-xs font-mono text-indigo-200 flex items-center space-x-2 animate-pulse">
+                <RefreshCw className="w-3.5 h-3.5 text-cyan-400 animate-spin shrink-0" />
+                <span>{batchSuggestionsProgress}</span>
+              </div>
+            )}
+
+            {/* Batch Completion Summary */}
+            {batchSuggestionsSummary && (
+              <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-xs text-emerald-200 space-y-1.5">
+                <div className="flex items-center space-x-2 font-bold font-mono">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span>
+                    Batch Evaluation Finished: {batchSuggestionsSummary.approved} of {batchSuggestionsSummary.tested} suggestions passed Benjamini-Hochberg FDR & Brier hurdles!
+                  </span>
+                </div>
+                {batchSuggestionsSummary.injected.length > 0 && (
+                  <div className="text-[11px] font-mono text-emerald-300 pl-6">
+                    Injected into Active Registry: {batchSuggestionsSummary.injected.join(' • ')}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
               {hypothesisPresets.map((preset, idx) => (
                 <button

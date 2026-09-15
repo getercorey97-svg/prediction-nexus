@@ -121,14 +121,23 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             id="nav-home-btn"
             onClick={() => onNavigate('PERSONAL_HOME')}
-            className="px-3 py-1 text-xs font-mono font-medium rounded text-cyan-300 hover:bg-cyan-950/40 border border-cyan-800/60"
+            className="px-3 py-1 text-xs font-mono font-medium rounded text-cyan-300 hover:bg-cyan-950/40 border border-cyan-800/60 cursor-pointer"
           >
             ★ MY HOME
           </button>
           <button
+            id="nav-value-bets-btn"
+            onClick={() => onNavigate('VALUE_BETS')}
+            className="px-3 py-1 text-xs font-mono font-medium rounded text-amber-300 hover:bg-amber-950/40 border border-amber-800/60 flex items-center space-x-1 cursor-pointer"
+            title="Active pure +EV plays and Kelly bet sizing"
+          >
+            <Zap className="w-3.5 h-3.5 mr-1 text-amber-400" />
+            <span>VALUE BETS</span>
+          </button>
+          <button
             id="nav-accuracy-btn"
             onClick={() => onNavigate('ACCURACY_LEDGER')}
-            className="px-3 py-1 text-xs font-mono font-medium rounded text-emerald-300 hover:bg-emerald-950/40 border border-emerald-800/60 flex items-center space-x-1"
+            className="px-3 py-1 text-xs font-mono font-medium rounded text-emerald-300 hover:bg-emerald-950/40 border border-emerald-800/60 flex items-center space-x-1 cursor-pointer"
             title="View strict accurate vs inaccurate prediction record"
           >
             <ShieldCheck className="w-3.5 h-3.5 mr-1 text-emerald-400" />

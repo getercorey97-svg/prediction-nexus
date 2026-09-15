@@ -90,6 +90,19 @@ export interface MarketTargetDetail {
   optimalCalibrationVariance: number;
 }
 
+export interface DataProvenance {
+  source: string;
+  eventId: string;
+  verifiedGroundTruth: boolean;
+  ingestedAt: string;
+  oddsProvider?: string;
+  mathEngineUsed: string;
+  zeroFabricationCertified: boolean;
+  firestoreRecordId?: string;
+  rawApiUrl?: string;
+  verificationHash?: string;
+}
+
 export interface Game {
   id: string;
   sport: SportType;
@@ -114,6 +127,9 @@ export interface Game {
   odds: MarketOddsVariables;
   weights: CalibratedWeights;
   
+  // Data Provenance & Zero-Fabrication Certification
+  provenance?: DataProvenance;
+
   // Primary Predictions
   trueProbabilityHome: number; // Root-level probability deconstructing consensus
   consensusImpliedProbabilityHome: number;

@@ -22,6 +22,8 @@ interface MatchSearchModalProps {
   onLaunchTtSim?: (p1Name: string, p2Name: string, totalLine?: number) => void;
   onOpenBacktest?: (gameId: string) => void;
   onOpenCalibrate?: (gameId: string) => void;
+  onSelectMatch?: (match: MatchSearchResult) => void;
+  onSelectPlayer?: (playerName: string) => void;
 }
 
 export const MatchSearchModal: React.FC<MatchSearchModalProps> = ({
@@ -32,6 +34,8 @@ export const MatchSearchModal: React.FC<MatchSearchModalProps> = ({
   onLaunchTtSim,
   onOpenBacktest,
   onOpenCalibrate,
+  onSelectMatch,
+  onSelectPlayer,
 }) => {
   const [query, setQuery] = useState('');
   const [sportFilter, setSportFilter] = useState<SportType | 'ALL'>('ALL');
@@ -232,6 +236,7 @@ export const MatchSearchModal: React.FC<MatchSearchModalProps> = ({
                     <>
                       <button
                         onClick={() => {
+                          if (onSelectMatch) onSelectMatch(m);
                           const parts = m.matchupTitle.split(' vs ');
                           if (onLaunchTtSim && parts.length === 2) {
                             onLaunchTtSim(parts[0].trim(), parts[1].trim(), m.marketDetails.totalLine);
@@ -275,7 +280,20 @@ export const MatchSearchModal: React.FC<MatchSearchModalProps> = ({
                       {onSelectGame && m.rawGameId && (
                         <button
                           onClick={() => {
+                            if (onSelectMatch) onSelectMatch(m);
                             onSelectGame(m.rawGameId!);
+                            onClose();
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-mono text-xs font-bold flex items-center space-x-1"
+                        >
+                          <span>Inspect Matchup</span>
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {!onSelectGame && onSelectMatch && (
+                        <button
+                          onClick={() => {
+                            onSelectMatch(m);
                             onClose();
                           }}
                           className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-mono text-xs font-bold flex items-center space-x-1"

@@ -1,4 +1,5 @@
 import { TableTennisPlayer, TableTennisSimulationResult, TableTennisMatchScheduled } from '../src/types';
+import { processTableTennisMatchLearning } from './firebaseLearningService';
 
 export interface StyleMatrix {
   leftyVsRightyBonus: number; // e.g. 0.024
@@ -1069,6 +1070,19 @@ export function recordAndLearnTableTennisMatch(
     `Pre-match Nexus probability: ${(p1PredProb * 100).toFixed(1)}%. Realized Brier Loss: ${brierScore}. ` +
     `Glicko-2 updated: ${p1.name} [Rating: ${p1.rating}, RD: ${p1.rd}], ${p2.name} [Rating: ${p2.rating}, RD: ${p2.rd}]. ` +
     `Calibrated style matrix: Lefty Bonus: ${tableTennisStyleMatrix.leftyVsRightyBonus}, Long Pips Penalty: ${tableTennisStyleMatrix.longPipsVsAttackerPenalty}.`;
+
+  // Persist to Cloud Firestore via Firebase Learning Pipeline
+  processTableTennisMatchLearning(
+    match.id,
+    p1.name,
+    p2.name,
+    p1PredProb,
+    actualWinnerIsP1,
+    brierScore,
+    `Lefty Bonus: ${tableTennisStyleMatrix.leftyVsRightyBonus}, Long Pips Penalty: ${tableTennisStyleMatrix.longPipsVsAttackerPenalty}`
+  ).catch(err => {
+    console.warn('[Table Tennis Learning] Firestore persistence notice:', err?.message || err);
+  });
 
   return {
     success: true,

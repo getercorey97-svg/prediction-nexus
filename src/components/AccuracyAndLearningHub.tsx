@@ -28,12 +28,14 @@ interface AccuracyAndLearningHubProps {
   initialSport?: SportType | 'ALL';
   onNavigateToSport?: (sport: SportType) => void;
   onNavigateToBacktest?: (sport?: SportType) => void;
+  onNavigateToLearningEngine?: () => void;
 }
 
 export const AccuracyAndLearningHub: React.FC<AccuracyAndLearningHubProps> = ({
   initialSport = 'ALL',
   onNavigateToSport,
   onNavigateToBacktest,
+  onNavigateToLearningEngine,
 }) => {
   // Navigation tabs: 'ACCURACY_LEDGER' | 'HOW_IT_LEARNS'
   const [activeTab, setActiveTab] = useState<'ACCURACY_LEDGER' | 'HOW_IT_LEARNS'>('ACCURACY_LEDGER');
@@ -51,6 +53,7 @@ export const AccuracyAndLearningHub: React.FC<AccuracyAndLearningHubProps> = ({
 
   // Interactive Learning Cycle Runner State
   const [isExecutingCycle, setIsExecutingCycle] = useState(false);
+  const [isExecutingAllCycles, setIsExecutingAllCycles] = useState(false);
   const [cycleSport, setCycleSport] = useState<SportType>('MLB');
   const [terminalLogs, setTerminalLogs] = useState<string[]>([]);
   const [cycleCompletedMessage, setCycleCompletedMessage] = useState<string | null>(null);
@@ -122,6 +125,50 @@ export const AccuracyAndLearningHub: React.FC<AccuracyAndLearningHubProps> = ({
     } finally {
       setIsExecutingCycle(false);
     }
+  };
+
+  // Apply all suggested recalibrations across all sports (MLB, NFL, CFB)
+  const handleApplyAllRecalibrations = async () => {
+    setIsExecutingAllCycles(true);
+    setTerminalLogs([]);
+    setCycleCompletedMessage(null);
+
+    const sportsToRun: SportType[] = ['MLB', 'NFL', 'CFB'];
+    setTerminalLogs([
+      `[BATCH DAEMON] Commencing continuous learning recalibration across all sports: ${sportsToRun.join(', ')}...`,
+      `[PERSISTENCE] Target: Cloud Firestore + Active In-Memory Engine Weights`,
+    ]);
+
+    for (const sport of sportsToRun) {
+      try {
+        setTerminalLogs(prev => [...prev, `--- Commencing learning cycle for ${sport} ---`]);
+        const res = await fetch('/api/learning-actions/trigger-cycle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sport }),
+        });
+        const data = await res.json();
+        if (data.cycleLog && Array.isArray(data.cycleLog)) {
+          for (let i = 0; i < data.cycleLog.length; i++) {
+            await new Promise(r => setTimeout(r, 60));
+            setTerminalLogs(prev => [...prev, data.cycleLog[i]]);
+          }
+        }
+        if (data.newAction) {
+          setLearningActions(prev => [data.newAction, ...prev]);
+        }
+        if (data.summary) {
+          setSummary(data.summary);
+        }
+      } catch (err) {
+        console.error(`Recalibration error for ${sport}:`, err);
+      }
+    }
+
+    setCycleCompletedMessage(
+      '✓ Complete! All sports (MLB, NFL, CFB) recalibrated and synchronized with Cloud Firestore database.'
+    );
+    setIsExecutingAllCycles(false);
   };
 
   // Filtered recent trend items
@@ -203,6 +250,16 @@ export const AccuracyAndLearningHub: React.FC<AccuracyAndLearningHubProps> = ({
             <Cpu className="w-4 h-4" />
             <span>2. HOW IT PREDICTS ACCURATELY & LEARNS ({learningActions.length} REFACTOR ACTIONS)</span>
           </button>
+
+          {onNavigateToLearningEngine && (
+            <button
+              onClick={onNavigateToLearningEngine}
+              className="ml-auto px-3.5 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center space-x-1.5 bg-cyan-950/80 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-500/50 cursor-pointer"
+            >
+              <Zap className="w-3.5 h-3.5 text-cyan-400" />
+              <span>DEDICATED LEARNING DAEMON PAGE →</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -813,15 +870,29 @@ export const AccuracyAndLearningHub: React.FC<AccuracyAndLearningHubProps> = ({
 
                 <button
                   onClick={handleTriggerLearningCycle}
-                  disabled={isExecutingCycle}
-                  className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center space-x-2 ${
+                  disabled={isExecutingCycle || isExecutingAllCycles}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center space-x-1.5 ${
                     isExecutingCycle
                       ? 'bg-amber-500/50 text-slate-950 cursor-wait'
                       : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 shadow-lg shadow-cyan-500/20'
                   }`}
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isExecutingCycle ? 'animate-spin' : ''}`} />
-                  <span>{isExecutingCycle ? 'OPTIMIZING WEIGHTS...' : 'TRIGGER LEARNING CYCLE'}</span>
+                  <span>{isExecutingCycle ? 'OPTIMIZING...' : 'TRIGGER CYCLE'}</span>
+                </button>
+
+                <button
+                  onClick={handleApplyAllRecalibrations}
+                  disabled={isExecutingCycle || isExecutingAllCycles}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold transition-all flex items-center space-x-1.5 ${
+                    isExecutingAllCycles
+                      ? 'bg-emerald-500/50 text-slate-950 cursor-wait'
+                      : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-lg shadow-emerald-500/20'
+                  }`}
+                  title="Run continuous learning cycles across MLB, NFL, and CFB simultaneously"
+                >
+                  <Zap className={`w-3.5 h-3.5 ${isExecutingAllCycles ? 'animate-bounce' : ''}`} />
+                  <span>{isExecutingAllCycles ? 'RECALIBRATING ALL...' : 'APPLY ALL RECALIBRATIONS'}</span>
                 </button>
               </div>
             </div>

@@ -82,6 +82,56 @@ export const TableTennisDashboard: React.FC<TableTennisDashboardProps> = ({
   // Active Tab
   const [activeTab, setActiveTab] = useState<'ORACLE_SIM' | 'PANDORA_MATCHES' | 'PLAYERS_DB' | 'STYLE_CALIBRATION'>('ORACLE_SIM');
 
+  // Batch simulation & value recommendation state
+  const [onlyShowValueSuggestions, setOnlyShowValueSuggestions] = useState(false);
+  const [batchSimResults, setBatchSimResults] = useState<Record<string, { recommendation: string; edgePct: number; winner: string }>>({});
+  const [isBatchSimulatingAll, setIsBatchSimulatingAll] = useState(false);
+  const [batchSimProgressText, setBatchSimProgressText] = useState<string | null>(null);
+
+  const handleBatchSimulateAllMatches = async () => {
+    setIsBatchSimulatingAll(true);
+    const newResults: Record<string, { recommendation: string; edgePct: number; winner: string }> = {};
+
+    for (let i = 0; i < matches.length; i++) {
+      const m = matches[i];
+      setBatchSimProgressText(`Simulating match ${i + 1}/${matches.length}: ${m.p1.name} vs ${m.p2.name}...`);
+      try {
+        const res = await fetch('/api/tt/simulate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            p1Name: m.p1.name,
+            p2Name: m.p2.name,
+            iterations: 20000,
+            totalLine: m.marketTotalPoints,
+            marketOddsP1: m.marketMoneylineP1,
+            marketOddsP2: m.marketMoneylineP2,
+          }),
+        });
+        if (res.ok) {
+          const d = await res.json();
+          const edge = d.recommendation === 'BET_P1'
+            ? Math.round((d.p1WinProbability - 0.5) * 100 * 10) / 10
+            : d.recommendation === 'BET_P2'
+            ? Math.round((d.p2WinProbability - 0.5) * 100 * 10) / 10
+            : 0;
+          newResults[m.id] = {
+            recommendation: d.recommendation,
+            edgePct: Math.abs(edge),
+            winner: d.recommendation === 'BET_P1' ? m.p1.name : d.recommendation === 'BET_P2' ? m.p2.name : 'PASS',
+          };
+        }
+      } catch (e) {
+        console.error('Batch sim error for match:', m.id, e);
+      }
+      await new Promise(r => setTimeout(r, 100));
+    }
+
+    setBatchSimResults(newResults);
+    setIsBatchSimulatingAll(false);
+    setBatchSimProgressText(null);
+  };
+
   // Fetch initial data
   const fetchData = async () => {
     try {
@@ -957,28 +1007,67 @@ export const TableTennisDashboard: React.FC<TableTennisDashboardProps> = ({
           </div>
 
           {/* Quick Match Search Bar */}
-          <div className="flex items-center space-x-2 bg-[#101726] p-2.5 rounded-xl border border-[#202e45]">
-            <Search className="w-4 h-4 text-cyan-400 shrink-0" />
-            <input
-              type="text"
-              value={matchSearchQuery}
-              onChange={(e) => setMatchSearchQuery(e.target.value)}
-              placeholder="Filter matches by player name, table number, or tournament..."
-              className="bg-transparent text-xs font-mono text-white placeholder:text-slate-500 flex-1 focus:outline-none"
-            />
-            {matchSearchQuery && (
+          {/* Search and Quick Actions Toolbar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#101726] p-3 rounded-xl border border-[#202e45]">
+            <div className="flex items-center space-x-2 flex-1">
+              <Search className="w-4 h-4 text-cyan-400 shrink-0" />
+              <input
+                type="text"
+                value={matchSearchQuery}
+                onChange={(e) => setMatchSearchQuery(e.target.value)}
+                placeholder="Filter matches by player name, table number, or tournament..."
+                className="bg-transparent text-xs font-mono text-white placeholder:text-slate-500 flex-1 focus:outline-none"
+              />
+              {matchSearchQuery && (
+                <button
+                  onClick={() => setMatchSearchQuery('')}
+                  className="text-xs font-mono text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-800"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center space-x-2 shrink-0">
               <button
-                onClick={() => setMatchSearchQuery('')}
-                className="text-xs font-mono text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-800"
+                onClick={() => setOnlyShowValueSuggestions(prev => !prev)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center space-x-1.5 transition-all ${
+                  onlyShowValueSuggestions
+                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                    : 'bg-[#182235] hover:bg-[#202d44] border border-[#2a3c5a] text-slate-300'
+                }`}
               >
-                Clear
+                <span>★</span>
+                <span>{onlyShowValueSuggestions ? 'SHOWING VALUE PICKS' : 'FILTER VALUE PICKS'}</span>
               </button>
-            )}
+
+              <button
+                onClick={handleBatchSimulateAllMatches}
+                disabled={isBatchSimulatingAll}
+                className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50 text-white text-xs font-mono font-bold flex items-center space-x-1.5 transition-all shadow-md shadow-cyan-600/20"
+                title="Run Monte Carlo 50,000 simulations for all matches on the slate"
+              >
+                <Zap className={`w-3.5 h-3.5 text-amber-300 ${isBatchSimulatingAll ? 'animate-bounce' : ''}`} />
+                <span>{isBatchSimulatingAll ? 'SIMULATING SLATE...' : '⚡ SIMULATE ALL MATCHES'}</span>
+              </button>
+            </div>
           </div>
+
+          {/* Batch Sim Progress Text */}
+          {batchSimProgressText && (
+            <div className="p-3 rounded-xl bg-cyan-950/60 border border-cyan-500/40 text-xs font-mono text-cyan-200 flex items-center space-x-2 animate-pulse">
+              <RefreshCw className="w-3.5 h-3.5 text-cyan-400 animate-spin shrink-0" />
+              <span>{batchSimProgressText}</span>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 gap-4">
             {matches
               .filter(m => {
+                if (onlyShowValueSuggestions) {
+                  const sim = batchSimResults[m.id];
+                  if (sim && sim.recommendation === 'PASS') return false;
+                }
                 if (!matchSearchQuery.trim()) return true;
                 const q = matchSearchQuery.toLowerCase();
                 return (
@@ -1010,6 +1099,19 @@ export const TableTennisDashboard: React.FC<TableTennisDashboardProps> = ({
                     </span>
                     <span className="text-xs font-mono text-slate-300 font-semibold">{m.tournament}</span>
                     <span className="text-[11px] font-mono text-slate-500">• {m.tableNumber}</span>
+
+                    {/* Batch Sim Suggestion Badge */}
+                    {batchSimResults[m.id] && (
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                        batchSimResults[m.id].recommendation !== 'PASS'
+                          ? 'bg-emerald-950 text-emerald-300 border border-emerald-700 animate-pulse'
+                          : 'bg-slate-800 text-slate-400'
+                      }`}>
+                        {batchSimResults[m.id].recommendation !== 'PASS'
+                          ? `VALUE: ${batchSimResults[m.id].winner} (+${batchSimResults[m.id].edgePct}%)`
+                          : 'PASS'}
+                      </span>
+                    )}
                   </div>
 
                   {/* Action Buttons */}
