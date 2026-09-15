@@ -1,0 +1,60 @@
+name: SOTA-TT-Oracle-Autonomous
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Runs every hour to check for finished matches and execute backtest
+  push:
+    paths:
+      - 'queue_predict.json' # Runs immediately when new matches are queued
+  workflow_dispatch:      # Allows on-demand manual trigger via web UI / GitHub Actions
+
+jobs:
+  run-sota-engine:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Mathematical Dependencies
+        run: pip install -r requirements.txt
+
+      - name: 1. Seed Historical Match Dataset
+        run: |
+          if [ ! -f history.csv ]; then
+            python seed_history.py
+          fi
+
+      - name: 2. Autonomous Learning & Results Settle
+        run: python results_fetcher.py
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+
+      - name: 3. Optimize Style Weights & Backtest
+        run: python backtest.py
+
+      - name: 4. Process Pending Match Predictions (Oracle 50k Sims)
+        run: |
+          if [ -f queue_predict.json ]; then
+            python oracle.py
+          fi
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+
+      - name: 5. Persist State & Commit Updates
+        run: |
+          git config --global user.name 'Oracle-SOTA-Bot'
+          git config --global user.email 'bot@sota-oracle.ai'
+          git add players.json active_matches.json history.csv || true
+          git commit -m "Autonomous SOTA TT Update: Memory Persisted & Learning Applied [skip ci]" || echo "No changes to commit"
+          git push || echo "No remote changes to push"
