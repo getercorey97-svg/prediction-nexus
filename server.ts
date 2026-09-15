@@ -55,8 +55,14 @@ import {
   getActiveDiscoveredVariables,
   getAutonomousDiscoveryStream,
   testHypothesis,
+  batchTestHypotheses,
   generateAutonomousDiscoveryCycle
 } from "./server/afterHoursDiscoveryService";
+import {
+  startMasterOrchestrator,
+  getMasterEfficiencyHealth,
+  triggerUnifiedRecalibrationAllSports
+} from "./server/masterOrchestrator";
 import { fetchAllRealLiveGames } from "./server/realLiveSportsService";
 import { 
   initializePersistentLearning, 
@@ -550,6 +556,27 @@ async function startServer() {
     });
   });
 
+  // POST High-Speed Parallel Recalibration across All 4 Sports
+  app.post("/api/learning-actions/recalibrate-all-unified", async (_req, res) => {
+    try {
+      const result = await triggerUnifiedRecalibrationAllSports();
+      res.json(result);
+    } catch (err: any) {
+      console.error("Unified recalibration failed:", err);
+      res.status(500).json({ error: "Failed to execute unified recalibration", details: err?.message });
+    }
+  });
+
+  // GET System Efficiency & Calibration Health Telemetry
+  app.get("/api/system/efficiency-health", (_req, res) => {
+    try {
+      const health = getMasterEfficiencyHealth();
+      res.json(health);
+    } catch (err: any) {
+      res.status(500).json({ error: "Failed to get efficiency telemetry", details: err?.message });
+    }
+  });
+
   // POST Gemini Strict Math Grounding translation
   app.post("/api/gemini/translate-math", async (req, res) => {
     try {
@@ -793,6 +820,16 @@ async function startServer() {
     res.json(result);
   });
 
+  // POST Batch Hypothesis Testing with Benjamini-Hochberg FDR correction
+  app.post("/api/after-hours/batch-test-hypotheses", (req, res) => {
+    const requests = req.body?.requests;
+    if (!Array.isArray(requests)) {
+      return res.status(400).json({ error: "requests must be an array of HypothesisTestRequest" });
+    }
+    const batchResult = batchTestHypotheses(requests);
+    res.json(batchResult);
+  });
+
   app.post("/api/after-hours/trigger-cycle", (_req, res) => {
     const item = generateAutonomousDiscoveryCycle();
     res.json({
@@ -803,18 +840,8 @@ async function startServer() {
     });
   });
 
-  // Continuous background auto-backtesting, player live tick & after-hours discovery
-  setInterval(() => {
-    try {
-      runAutoBacktestCycle();
-      tickLivePlayerSimulation();
-      if (Math.random() > 0.4) {
-        generateAutonomousDiscoveryCycle();
-      }
-    } catch (e) {
-      console.error("Error in background auto-backtest interval:", e);
-    }
-  }, 25000);
+  // Unified Master Event-Driven Orchestrator (Coordinates continuous auto-backtesting, live player ticks, grading, and discovery)
+  startMasterOrchestrator(25000);
 
   // VITE MIDDLEWARE SETUP
   if (process.env.NODE_ENV !== "production") {

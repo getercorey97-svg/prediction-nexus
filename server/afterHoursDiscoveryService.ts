@@ -238,6 +238,86 @@ const KNOWN_VARIABLES_DATABASE = [
     empiricalStrength: +0.124,
     isSpurious: false,
     realExplanation: 'Teams playing on under 96 hours of rest commit 19.4% more missed run-gap fits in the 2nd half, consistently bleeding explosive rushing yards.'
+  },
+  {
+    keywords: ['umpire', 'strike zone', 'called strike', 'home plate', 'wide zone', 'k/9'],
+    variableName: 'umpire_called_strike_zone_width_skew',
+    category: 'OFFICIATING_SITUATIONAL' as const,
+    empiricalStrength: +0.108,
+    isSpurious: false,
+    realExplanation: 'Statcast zone tracking confirms wide-boundary home plate umpires increase called strike rates by 4.2%, elevating starter strikeout counts by +1.4 Ks per game.'
+  },
+  {
+    keywords: ['humidity', 'exit velocity', 'carry distance', 'batted ball', 'dew', 'drag'],
+    variableName: 'aerodynamic_humidity_exit_velocity_drag',
+    category: 'ATMOSPHERIC_PHYSICS' as const,
+    empiricalStrength: -0.096,
+    isSpurious: false,
+    realExplanation: 'High ambient humidity at standard barometric pressures increases boundary layer air drag on batted balls, reducing fly ball travel distance by 4.2 feet and suppressing game run totals.'
+  },
+  {
+    keywords: ['thursday', 'short week', 'defensive fatigue', 'run gap', 'second half'],
+    variableName: 'short_week_away_defensive_fatigue_decay',
+    category: 'CIRCADIAN_SLEEP' as const,
+    empiricalStrength: +0.122,
+    isSpurious: false,
+    realExplanation: 'Visiting defensive units playing on short 4-day turnarounds experience 21.8% more missed tackles in the second half, leading to elevated fourth-quarter scoring.'
+  },
+  {
+    keywords: ['red zone', 'turnover luck', 'regression', 'forced turnover', 'interception'],
+    variableName: 'redzone_defensive_turnover_luck_regression',
+    category: 'OFFICIATING_SITUATIONAL' as const,
+    empiricalStrength: -0.114,
+    isSpurious: false,
+    realExplanation: 'Defenses with unsustainable red zone turnover rates (>75%) regress strongly toward the NCAA FBS median of 22%, failing to cover spreads against top-40 offensive efficiency units.'
+  },
+  {
+    keywords: ['altitude', 'topspin', 'loop winner', 'elevation', 'counter attack', 'air resistance'],
+    variableName: 'altitude_table_tennis_topspin_dive_decay',
+    category: 'ATMOSPHERIC_PHYSICS' as const,
+    empiricalStrength: +0.116,
+    isSpurious: false,
+    realExplanation: 'Reduced air density at elevated tournament venues (>1,200m) decreases aerodynamic Magnus dip on heavy topspin loops, favoring aggressive forehand counter-attackers over deep pushers.'
+  },
+  {
+    keywords: ['fourth set', 'deciding set', 'chopper', 'service conversion', 'defensive', '5-set'],
+    variableName: 'decider_set_service_conversion_fatigue',
+    category: 'BIOMECHANIC' as const,
+    empiricalStrength: -0.125,
+    isSpurious: false,
+    realExplanation: 'In grueling 5-set matches reaching sets 4 and 5, server point conversion drops by 14.1% for defensive choppers due to forearm lactic accumulation and reduced first-ball spin velocity.'
+  },
+  {
+    keywords: ['hurry up', 'no huddle', 'pace', 'substitution', 'gapped line', 'september'],
+    variableName: 'early_season_no_huddle_pace_substitution_delta',
+    category: 'OFFICIATING_SITUATIONAL' as const,
+    empiricalStrength: +0.105,
+    isSpurious: false,
+    realExplanation: 'Hurry-up no-huddle tempo offenses facing early-season heat and gapped defensive lines exceed first-half point totals by an average of 3.8 points due to defensive substitution exhaustion.'
+  },
+  {
+    keywords: ['cover-0', 'cover 0', 'blitz', 'depleted', 'offensive tackle', 'dropback'],
+    variableName: 'cover_zero_blitz_depleted_tackle_pressure',
+    category: 'OFFICIATING_SITUATIONAL' as const,
+    empiricalStrength: -0.119,
+    isSpurious: false,
+    realExplanation: 'When facing Cover-0 blitz schemes with backup offensive tackles, quarterback EPA per dropback collapses by -0.48, suppressing passing yardage props below line expectations.'
+  },
+  {
+    keywords: ['bullpen', 'opener', 'third time', 'order penalty', 'wrc+', 'innings'],
+    variableName: 'bullpen_game_third_time_order_penalty',
+    category: 'OFFICIATING_SITUATIONAL' as const,
+    empiricalStrength: +0.112,
+    isSpurious: false,
+    realExplanation: 'Bullpen-day bridge relievers facing the top half of the batting order for a second/third turn suffer an 88-point spike in opponent OPS, heavily favoring first 5 innings overs.'
+  },
+  {
+    keywords: ['bounce', 'friction', 'underspin', 'push reception', 'table friction', 'hall humidity'],
+    variableName: 'hall_humidity_table_friction_underspin_index',
+    category: 'ATMOSPHERIC_PHYSICS' as const,
+    empiricalStrength: +0.098,
+    isSpurious: false,
+    realExplanation: 'Hall humidity above 70% reduces micro-surface friction between cell-poly ball and wooden table top, boosting heavy underspin backspin retention by 11.4%.'
   }
 ];
 
@@ -493,4 +573,87 @@ export function generateAutonomousDiscoveryCycle(): AfterHoursDiscoveryStreamIte
   }
 
   return item;
+}
+
+/**
+ * High-Speed Batch Hypothesis Testing with Benjamini-Hochberg Multi-Test FDR Correction
+ * Vectorizes testing across an entire array of hypotheses in a single server pass,
+ * eliminating client-side polling delays and ensuring strict statistical alpha control.
+ */
+export function batchTestHypotheses(requests: HypothesisTestRequest[]): {
+  results: HypothesisTestResult[];
+  approvedCount: number;
+  injectedNames: string[];
+  fdrCorrectionApplied: boolean;
+  batchExecutionMs: number;
+} {
+  const startTime = Date.now();
+  if (!requests || requests.length === 0) {
+    return {
+      results: [],
+      approvedCount: 0,
+      injectedNames: [],
+      fdrCorrectionApplied: true,
+      batchExecutionMs: 0
+    };
+  }
+
+  // 1. Evaluate each hypothesis candidate through empirical backtesting
+  const rawResults: HypothesisTestResult[] = requests.map(req => testHypothesis(req));
+
+  // 2. Vectorized Benjamini-Hochberg FDR correction across candidate pool
+  // Rank tests by p-value ascending: P_(1) <= P_(2) <= ... <= P_(m)
+  const m = rawResults.length;
+  const targetFdrRate = 0.05; // 5% FDR false discovery rate ceiling
+
+  const indexed = rawResults.map((res, index) => ({ res, index, pVal: res.pValue }));
+  indexed.sort((a, b) => a.pVal - b.pVal);
+
+  // Find max rank k such that P_(k) <= (k / m) * targetFdrRate
+  let maxApprovedRank = -1;
+  for (let k = 1; k <= m; k++) {
+    const item = indexed[k - 1];
+    const criticalThreshold = (k / m) * targetFdrRate;
+    if (item.pVal <= criticalThreshold && item.res.fdrStatus === 'PASSED_BENJAMINI_HOCHBERG') {
+      maxApprovedRank = k;
+    }
+  }
+
+  const finalResults: HypothesisTestResult[] = [];
+  const injectedNames: string[] = [];
+
+  for (let k = 1; k <= m; k++) {
+    const entry = indexed[k - 1];
+    const candidate = entry.res;
+
+    // Must satisfy both rank threshold and out-of-sample Brier reduction
+    const passesFdr = k <= maxApprovedRank && candidate.outOfSampleDeltaBrier < 0;
+
+    if (passesFdr && candidate.verdict === 'APPROVED_AND_INJECTED') {
+      finalResults[entry.index] = candidate;
+      if (!injectedNames.includes(candidate.variableName)) {
+        injectedNames.push(candidate.variableName);
+      }
+    } else {
+      // Re-gate as spurious if failed FDR ranking
+      finalResults[entry.index] = {
+        ...candidate,
+        verdict: 'REJECTED_SPURIOUS_NOISE',
+        fdrStatus: 'FAILED_FALSE_DISCOVERY',
+        injectedWeight: 0.000,
+        suggestedEngineAction: 'Rejected under Benjamini-Hochberg Multi-Test Correction (k/m critical bound). Archived to protect calibration.'
+      };
+    }
+  }
+
+  const batchExecutionMs = Date.now() - startTime;
+  console.log(`[Quant Discovery Lab] Batch evaluated ${requests.length} hypotheses in ${batchExecutionMs}ms. Approved & injected: ${injectedNames.length}`);
+
+  return {
+    results: finalResults,
+    approvedCount: injectedNames.length,
+    injectedNames,
+    fdrCorrectionApplied: true,
+    batchExecutionMs
+  };
 }

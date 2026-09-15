@@ -635,4 +635,52 @@ export interface TableTennisMatchScheduled {
   };
 }
 
+export interface SportEfficiencyMetric {
+  sport: SportType;
+  outOfSampleBrierScore: number;
+  expectedCalibrationError: number;
+  sampleCount: number;
+  lastUpdated: string;
+  calibrationStatus: 'OPTIMAL' | 'DAMPED' | 'CALIBRATING';
+  dominantPredictiveFeature: string;
+}
+
+export interface SystemEfficiencyHealth {
+  systemState: 'OPTIMAL' | 'CALIBRATING' | 'GUARDED';
+  cycleExecutionLatencyMs: number;
+  totalEvaluatedOutcomes: number;
+  overallWeightedBrierScore: number;
+  expectedCalibrationError: number;
+  memoryUsageMb: number;
+  sandboxIsolationEnforced: boolean;
+  invariantsAuditedCount: number;
+  autoHealedAnomaliesCount: number;
+  fdrVerifiedAlphaSignalsCount: number;
+  lastFullSyncTimestamp: string;
+  nextScheduledCycleSeconds: number;
+  sports: Record<SportType, SportEfficiencyMetric>;
+}
+
+export interface UnifiedRecalibrationResult {
+  sport: SportType;
+  status: 'RECALIBRATED_OPTIMAL' | 'PRESERVED_STABLE';
+  preBrier: number;
+  postBrier: number;
+  brierDeltaPct: number;
+  updatedWeights: CalibratedWeights;
+  gradientStepFormula: string;
+  primaryParameterCalibrated: string;
+  walkForwardSampleCount: number;
+}
+
+export interface UnifiedRecalibrationResponse {
+  success: boolean;
+  timestamp: string;
+  executionDurationMs: number;
+  sportsCalibrated: UnifiedRecalibrationResult[];
+  aggregateBrierImprovementPct: number;
+  terminalLogs: string[];
+  firestoreSyncConfirmed: boolean;
+}
+
 

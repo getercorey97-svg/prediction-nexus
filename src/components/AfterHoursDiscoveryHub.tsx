@@ -78,43 +78,123 @@ export const AfterHoursDiscoveryHub: React.FC<AfterHoursDiscoveryHubProps> = ({
     injected: string[];
   } | null>(null);
 
-  // Curated Hypothesis Presets
+  // Suggestions filter state
+  const [presetFilter, setPresetFilter] = useState<'ALL' | 'NEW' | 'MLB' | 'NFL' | 'CFB' | 'TABLE_TENNIS'>('ALL');
+
+  // Curated Hypothesis Presets & New Quantitative Suggestions
   const hypothesisPresets = [
     {
       title: '🌙 Moon & Circadian Rhythm',
       text: 'Does lunar phase and circadian sleep rhythm alter 4th quarter quarterback passing yardage?',
       metric: 'PASSING_YARDS' as const,
-      sport: 'NFL' as const
+      sport: 'NFL' as const,
+      isNew: false
     },
     {
       title: '✈️ West-to-East Jetlag Delta',
       text: 'Do Pacific teams traveling to 1:00 PM EST games have lower 1st quarter offensive drive success?',
       metric: 'SPREAD_COVER' as const,
-      sport: 'NFL' as const
+      sport: 'NFL' as const,
+      isNew: false
     },
     {
       title: '🌡️ Turf Heat Fatigue Curve',
       text: 'Does synthetic turf temperature above 95°F increase 4th quarter scoring and missed tackles?',
       metric: 'GAME_TOTAL' as const,
-      sport: 'CFB' as const
+      sport: 'CFB' as const,
+      isNew: false
     },
     {
       title: '⚾ Dew Point Seam Drag',
       text: 'Does sub-45°F dew point increase fastball spin break and pitcher strikeout swing-and-miss rates?',
       metric: 'STRIKEOUTS' as const,
-      sport: 'MLB' as const
+      sport: 'MLB' as const,
+      isNew: false
     },
     {
       title: '🏓 Table Tennis Deuce Heart Deceleration',
       text: 'Do players with rapid parasympathetic heart rate recovery between sets win more deuce rallies?',
       metric: 'DEUCE_WIN_PCT' as const,
-      sport: 'TABLE_TENNIS' as const
+      sport: 'TABLE_TENNIS' as const,
+      isNew: false
     },
     {
       title: '⚖️ Holding Whistle Crew Index',
       text: 'Does a top-decile holding penalty crew suppress full game total points below the market line?',
       metric: 'GAME_TOTAL' as const,
-      sport: 'NFL' as const
+      sport: 'NFL' as const,
+      isNew: false
+    },
+    // BRAND NEW HIGH-ALPHA QUANT SUGGESTIONS
+    {
+      title: '⚾ Umpire Strike Zone Width Skew',
+      text: 'Does a wide-boundary home plate umpire increase starter strikeout counts by +1.4 Ks in cold weather?',
+      metric: 'STRIKEOUTS' as const,
+      sport: 'MLB' as const,
+      isNew: true
+    },
+    {
+      title: '🌧️ Air Humidity & Exit Velocity Drag',
+      text: 'Does ambient relative humidity > 75% at sea level dampen batted ball carry distance and suppress game run totals?',
+      metric: 'GAME_TOTAL' as const,
+      sport: 'MLB' as const,
+      isNew: true
+    },
+    {
+      title: '🏃 Short-Week Thursday Night Defensive Fatigue',
+      text: 'Do away defenses playing on short-week Thursday games allow 22% more explosive run plays in the 4th quarter?',
+      metric: 'GAME_TOTAL' as const,
+      sport: 'NFL' as const,
+      isNew: true
+    },
+    {
+      title: '🏈 Red Zone Turnover Regression to Mean',
+      text: 'Do college defenses with >75% forced turnover luck in red zone regress sharply against top-40 offensive efficiency units?',
+      metric: 'SPREAD_COVER' as const,
+      sport: 'CFB' as const,
+      isNew: true
+    },
+    {
+      title: '🏓 Altitude Air Density & Topspin Dive Decay',
+      text: 'Does elevated tournament altitude (>1,200m) reduce air resistance on topspin drives, giving aggressive counter-attackers an edge?',
+      metric: 'MATCH_WINNER' as any,
+      sport: 'TABLE_TENNIS' as const,
+      isNew: true
+    },
+    {
+      title: '🏓 Fourth-Set Decider Service Conversion Decay',
+      text: 'In 5-set matches reaching the 4th and 5th sets, does server first-ball attack win rate drop by 14% for defensive choppers?',
+      metric: 'DEUCE_WIN_PCT' as const,
+      sport: 'TABLE_TENNIS' as const,
+      isNew: true
+    },
+    {
+      title: '⏱️ Early Season High-Pace Substitution Delta',
+      text: 'Do hurry-up no-huddle offenses facing gapped defensive lines in September heat exceed 1st half point totals by 3.8 points?',
+      metric: 'GAME_TOTAL' as const,
+      sport: 'CFB' as const,
+      isNew: true
+    },
+    {
+      title: '🛡️ Cover-0 Blitz Pressure vs Depleted Tackles',
+      text: 'Does facing Cover-0 blitz schemes with backup offensive tackles collapse quarterback yards per dropback below 4.8 yards?',
+      metric: 'PASSING_YARDS' as const,
+      sport: 'NFL' as const,
+      isNew: true
+    },
+    {
+      title: '⚾ Bullpen Opener 3rd Time Through Order Penalty',
+      text: 'Do bullpen-game openers facing batting orders for the 3rd time in innings 4-5 yield a +115 wRC+ spike?',
+      metric: 'GAME_TOTAL' as const,
+      sport: 'MLB' as const,
+      isNew: true
+    },
+    {
+      title: '🏓 Table Humidity & Ball Bounce Friction',
+      text: 'Does hall humidity above 70% decrease cell-poly table bounce friction, boosting heavy underspin push reception success?',
+      metric: 'DEUCE_WIN_PCT' as const,
+      sport: 'TABLE_TENNIS' as const,
+      isNew: true
     }
   ];
 
@@ -216,48 +296,46 @@ export const AfterHoursDiscoveryHub: React.FC<AfterHoursDiscoveryHubProps> = ({
     }, 900);
   };
 
-  // Test & Inject All 6 Curated Hypothesis Suggestions
-  const handleTestAndInjectAllSuggestions = async () => {
+  // Test & Inject Suggestions (Fast Server-Side Batch Runner with Benjamini-Hochberg FDR)
+  const handleTestAndInjectSuggestions = async (onlyNew: boolean = false) => {
     setIsTestingAllSuggestions(true);
     setBatchSuggestionsSummary(null);
-    let approvedCount = 0;
-    const injectedNames: string[] = [];
 
-    for (let i = 0; i < hypothesisPresets.length; i++) {
-      const preset = hypothesisPresets[i];
-      setBatchSuggestionsProgress(`Testing theory ${i + 1}/${hypothesisPresets.length}: "${preset.title}"...`);
-      try {
-        const res = await fetch('/api/after-hours/test-hypothesis', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            hypothesisText: preset.text,
-            sport: preset.sport,
-            targetMetric: preset.metric
-          })
+    const targetList = onlyNew ? hypothesisPresets.filter(p => p.isNew) : hypothesisPresets;
+    setBatchSuggestionsProgress(`Executing high-speed vectorized test across ${targetList.length} hypotheses with Benjamini-Hochberg multi-test FDR correction...`);
+
+    const requests = targetList.map(preset => ({
+      hypothesisText: preset.text,
+      sport: preset.sport,
+      targetMetric: preset.metric
+    }));
+
+    try {
+      const res = await fetch('/api/after-hours/batch-test-hypotheses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requests })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        await fetchRegistryAndStream();
+        setBatchSuggestionsSummary({
+          tested: targetList.length,
+          approved: data.approvedCount,
+          injected: (data.injectedNames || []).map((name: string) => `Injected: ${name}`)
         });
-        if (res.ok) {
-          const data: HypothesisTestResult = await res.json();
-          if (data.verdict === 'APPROVED_AND_INJECTED') {
-            approvedCount++;
-            injectedNames.push(`${preset.sport}: ${data.variableName} (+${data.injectedWeight})`);
-          }
-        }
-      } catch (err) {
-        console.error('Batch hypothesis test error:', err);
       }
-      await new Promise(r => setTimeout(r, 220));
+    } catch (err) {
+      console.error('Batch hypothesis test error:', err);
+    } finally {
+      setIsTestingAllSuggestions(false);
+      setBatchSuggestionsProgress(null);
     }
-
-    await fetchRegistryAndStream();
-    setIsTestingAllSuggestions(false);
-    setBatchSuggestionsProgress(null);
-    setBatchSuggestionsSummary({
-      tested: hypothesisPresets.length,
-      approved: approvedCount,
-      injected: injectedNames
-    });
   };
+
+  const handleTestAndInjectAllSuggestions = () => handleTestAndInjectSuggestions(false);
+  const handleTestAndInjectNewSuggestionsOnly = () => handleTestAndInjectSuggestions(true);
 
   return (
     <div id="after-hours-discovery-hub" className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 space-y-8">
@@ -403,20 +481,103 @@ export const AfterHoursDiscoveryHub: React.FC<AfterHoursDiscoveryHubProps> = ({
         <div className="space-y-6">
           {/* Preset Prompts Bar */}
           <div className="space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <span className="text-xs font-medium text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Curated Theories & Discovery Ideas:</span>
-              </span>
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+              <div>
+                <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Curated Alpha Theories & Quantitative Suggestions ({hypothesisPresets.length})</span>
+                </span>
+                <p className="text-[11px] text-slate-400 font-sans mt-0.5">
+                  Select any suggestion to test in the Quant Lab, or batch-evaluate and inject verified passing signals directly into production model weights.
+                </p>
+              </div>
 
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={handleTestAndInjectNewSuggestionsOnly}
+                  disabled={isTestingAllSuggestions}
+                  className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 disabled:opacity-50 text-white text-xs font-mono font-bold flex items-center space-x-1.5 transition-all shadow-md cursor-pointer"
+                  title="Batch test only the 10 brand-new suggestions through 3-tier validation and inject passing alpha into production"
+                >
+                  <Zap className={`w-3.5 h-3.5 text-amber-300 ${isTestingAllSuggestions ? 'animate-bounce' : ''}`} />
+                  <span>{isTestingAllSuggestions ? 'EVALUATING...' : `⚡ ADD ALL NEW SUGGESTIONS (${hypothesisPresets.filter(p => p.isNew).length})`}</span>
+                </button>
+
+                <button
+                  onClick={handleTestAndInjectAllSuggestions}
+                  disabled={isTestingAllSuggestions}
+                  className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 disabled:opacity-50 text-white text-xs font-mono font-bold flex items-center space-x-1.5 transition-all shadow-md cursor-pointer"
+                  title="Batch test all curated suggestions through 3-tier validation and inject passing alpha into production"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-cyan-300 ${isTestingAllSuggestions ? 'animate-spin' : ''}`} />
+                  <span>{isTestingAllSuggestions ? 'EVALUATING ALL...' : `⚡ TEST & INJECT ALL (${hypothesisPresets.length})`}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Filter Chips Bar */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-[10px] font-mono text-slate-500 mr-1 uppercase">Filter:</span>
               <button
-                onClick={handleTestAndInjectAllSuggestions}
-                disabled={isTestingAllSuggestions}
-                className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-indigo-600 via-purple-600 to-emerald-600 hover:from-indigo-500 hover:to-emerald-500 disabled:opacity-50 text-white text-xs font-mono font-bold flex items-center space-x-1.5 transition-all shadow-md cursor-pointer self-start sm:self-auto"
-                title="Batch test all curated suggestions through 3-tier validation and inject passing alpha into production"
+                onClick={() => setPresetFilter('ALL')}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-all cursor-pointer ${
+                  presetFilter === 'ALL'
+                    ? 'bg-indigo-600 text-white font-bold shadow'
+                    : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                }`}
               >
-                <Zap className={`w-3.5 h-3.5 text-amber-300 ${isTestingAllSuggestions ? 'animate-bounce' : ''}`} />
-                <span>{isTestingAllSuggestions ? 'EVALUATING ALL THEORIES...' : '⚡ TEST & INJECT ALL 6 SUGGESTIONS'}</span>
+                ALL ({hypothesisPresets.length})
+              </button>
+              <button
+                onClick={() => setPresetFilter('NEW')}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-all flex items-center space-x-1 cursor-pointer ${
+                  presetFilter === 'NEW'
+                    ? 'bg-emerald-600 text-white font-bold shadow'
+                    : 'bg-slate-900 text-emerald-400 hover:text-emerald-300 border border-emerald-900/60'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>NEW ONLY ({hypothesisPresets.filter(p => p.isNew).length})</span>
+              </button>
+              <button
+                onClick={() => setPresetFilter('MLB')}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-all cursor-pointer ${
+                  presetFilter === 'MLB'
+                    ? 'bg-cyan-600 text-white font-bold shadow'
+                    : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                }`}
+              >
+                MLB ({hypothesisPresets.filter(p => p.sport === 'MLB').length})
+              </button>
+              <button
+                onClick={() => setPresetFilter('NFL')}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-all cursor-pointer ${
+                  presetFilter === 'NFL'
+                    ? 'bg-cyan-600 text-white font-bold shadow'
+                    : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                }`}
+              >
+                NFL ({hypothesisPresets.filter(p => p.sport === 'NFL').length})
+              </button>
+              <button
+                onClick={() => setPresetFilter('CFB')}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-all cursor-pointer ${
+                  presetFilter === 'CFB'
+                    ? 'bg-cyan-600 text-white font-bold shadow'
+                    : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                }`}
+              >
+                CFB ({hypothesisPresets.filter(p => p.sport === 'CFB').length})
+              </button>
+              <button
+                onClick={() => setPresetFilter('TABLE_TENNIS')}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-mono transition-all cursor-pointer ${
+                  presetFilter === 'TABLE_TENNIS'
+                    ? 'bg-cyan-600 text-white font-bold shadow'
+                    : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                }`}
+              >
+                TABLE TENNIS ({hypothesisPresets.filter(p => p.sport === 'TABLE_TENNIS').length})
               </button>
             </div>
 
@@ -430,7 +591,7 @@ export const AfterHoursDiscoveryHub: React.FC<AfterHoursDiscoveryHubProps> = ({
 
             {/* Batch Completion Summary */}
             {batchSuggestionsSummary && (
-              <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-xs text-emerald-200 space-y-1.5">
+              <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-xs text-emerald-200 space-y-1.5 animate-fadeIn">
                 <div className="flex items-center space-x-2 font-bold font-mono">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   <span>
@@ -438,34 +599,54 @@ export const AfterHoursDiscoveryHub: React.FC<AfterHoursDiscoveryHubProps> = ({
                   </span>
                 </div>
                 {batchSuggestionsSummary.injected.length > 0 && (
-                  <div className="text-[11px] font-mono text-emerald-300 pl-6">
-                    Injected into Active Registry: {batchSuggestionsSummary.injected.join(' • ')}
+                  <div className="text-[11px] font-mono text-emerald-300 pl-6 space-y-0.5">
+                    <div className="font-bold text-white">Injected into Active Weight Production:</div>
+                    <div>{batchSuggestionsSummary.injected.join(' • ')}</div>
                   </div>
                 )}
               </div>
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-              {hypothesisPresets.map((preset, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    setHypothesisInput(preset.text);
-                    setSelectedSport(preset.sport);
-                    setTargetMetric(preset.metric);
-                    handleRunHypothesis(preset.text, preset.sport, preset.metric);
-                  }}
-                  className="p-3 text-left rounded-xl bg-slate-900/80 hover:bg-slate-800/90 border border-slate-800 hover:border-indigo-500/40 transition-all text-xs group cursor-pointer"
-                >
-                  <div className="font-semibold text-slate-200 group-hover:text-indigo-300 flex items-center justify-between">
-                    <span>{preset.title}</span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
-                      {preset.sport}
-                    </span>
-                  </div>
-                  <p className="text-slate-400 text-[11px] mt-1 line-clamp-2">{preset.text}</p>
-                </button>
-              ))}
+              {hypothesisPresets
+                .filter(preset => {
+                  if (presetFilter === 'NEW') return preset.isNew;
+                  if (presetFilter === 'MLB') return preset.sport === 'MLB';
+                  if (presetFilter === 'NFL') return preset.sport === 'NFL';
+                  if (presetFilter === 'CFB') return preset.sport === 'CFB';
+                  if (presetFilter === 'TABLE_TENNIS') return preset.sport === 'TABLE_TENNIS';
+                  return true;
+                })
+                .map((preset, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setHypothesisInput(preset.text);
+                      setSelectedSport(preset.sport);
+                      setTargetMetric(preset.metric);
+                      handleRunHypothesis(preset.text, preset.sport, preset.metric);
+                    }}
+                    className={`p-3 text-left rounded-xl bg-slate-900/80 hover:bg-slate-800/90 border transition-all text-xs group cursor-pointer ${
+                      preset.isNew ? 'border-emerald-800/60 hover:border-emerald-500/60 shadow-sm' : 'border-slate-800 hover:border-indigo-500/40'
+                    }`}
+                  >
+                    <div className="font-semibold text-slate-200 group-hover:text-indigo-300 flex items-center justify-between gap-2">
+                      <span className="truncate">{preset.title}</span>
+                      <div className="flex items-center space-x-1 shrink-0">
+                        {preset.isNew && (
+                          <span className="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-700 flex items-center space-x-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span>NEW</span>
+                          </span>
+                        )}
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">
+                          {preset.sport}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-slate-400 text-[11px] mt-1 line-clamp-2">{preset.text}</p>
+                  </button>
+                ))}
             </div>
           </div>
 
