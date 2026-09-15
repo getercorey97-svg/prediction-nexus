@@ -13,6 +13,7 @@ import {
 import fs from 'fs';
 import path from 'path';
 import { Game, SportType, CalibratedWeights } from '../src/types';
+import { verifyAndCommitPostUpdateCalibration } from './calibrationProtectionService';
 
 // Load config
 const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
@@ -376,7 +377,7 @@ export async function processCompletedGameLearning(
     form: newForm,
   });
 
-  const updatedWeights: CalibratedWeights = {
+  const candidateWeights: CalibratedWeights = {
     weatherWeight: normalized.weather,
     marketOddsWeight: normalized.market,
     pitchingOrQbWeight: normalized.pitching,
@@ -388,6 +389,17 @@ export async function processCompletedGameLearning(
     recentFormOptimal: normalized.form,
     travelFatigueOptimal: w.travelFatigueOptimal || 0.10,
   };
+
+  // POST-UPDATE CALIBRATION INTEGRITY GATE
+  // Ensures gradient changes do not induce drift, violation of bounds, or miscalibration
+  const calibrationAudit = verifyAndCommitPostUpdateCalibration(
+    sport,
+    candidateWeights,
+    w,
+    shiftReason || `Completed Game Gradient Descent (${game.awayTeam?.code || 'AWAY'} @ ${game.homeTeam?.code || 'HOME'})`
+  );
+
+  const updatedWeights = calibrationAudit.committedWeights;
 
   // Update cumulative metrics
   const newTotalGames = currentCalib.totalEvaluatedGames + 1;

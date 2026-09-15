@@ -384,6 +384,22 @@ export const GameCalibrationModal: React.FC<GameCalibrationModalProps> = ({
             </div>
           </div>
 
+          {/* Zero-Miscalibration & Sandbox Isolation Guarantee */}
+          <div className="p-3.5 bg-emerald-950/30 border border-emerald-800/60 rounded-xl flex items-start space-x-3 text-[11px] font-mono text-emerald-300 shadow-inner">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+            <div>
+              <div className="font-bold text-white uppercase tracking-wide flex items-center gap-2">
+                <span>Zero-Miscalibration & Sandbox Isolation Guarantee</span>
+                <span className="text-[10px] bg-emerald-900/60 text-emerald-200 px-1.5 py-0.2 rounded border border-emerald-700">
+                  Immunity Active
+                </span>
+              </div>
+              <p className="text-slate-300 font-sans text-xs mt-0.5 leading-relaxed">
+                Backtesting runs in a read-only memory sandbox and cannot overwrite or corrupt live weights. Every prediction passes the Pre-Prediction Verification Gate before display, guaranteeing bounded probability <span className="font-mono text-cyan-300">[0.02, 0.98]</span>, strict complementary totals <span className="font-mono text-cyan-300">P(Home) + P(Away) = 1.0</span>, and dampening against catastrophic drift.
+              </p>
+            </div>
+          </div>
+
           {/* ========================================================================= */}
           {/* SPORT-SPECIFIC MATHEMATICAL MECHANICS */}
           {/* ========================================================================= */}

@@ -1,4 +1,5 @@
 import { Game, SportType, WeatherVariables, MarketOddsVariables, CalibratedWeights, MarketTargetDetail, PlayerPropTarget, DataProvenance } from '../src/types';
+import { verifyAndCalibrateBeforePrediction } from './calibrationProtectionService';
 
 interface EspnCompetitor {
   id: string;
@@ -235,24 +236,46 @@ function transformEspnEventToGame(event: EspnEvent, sport: SportType, sourceUrl?
     }
   }
 
+  // Algorithmic weights definition
+  const weights: CalibratedWeights = {
+    weatherWeight: sport === 'MLB' ? 1.15 : sport === 'NFL' ? 1.05 : 1.10,
+    weatherOptimal: sport === 'MLB' ? 1.15 : sport === 'NFL' ? 1.05 : 1.10,
+    marketOddsWeight: 0.85,
+    marketOddsOptimal: 0.85,
+    pitchingOrQbWeight: 1.50,
+    pitchingOrQbOptimal: 1.50,
+    recentFormWeight: 1.10,
+    recentFormOptimal: 1.10,
+    travelFatigueWeight: 0.90,
+    travelFatigueOptimal: 0.90,
+  };
+
   // Calculate algorithmic edge and fair values based on records and live data
   const baseHomeRating = 88.0 + Math.min(8.0, (homeScore - awayScore) * 1.5);
   const baseAwayRating = 86.0 - Math.min(6.0, (homeScore - awayScore) * 1.0);
 
-  let trueProbHome = 0.54;
+  let rawTrueProbHome = 0.54;
   if (status === 'LIVE' && comp.situation?.lastPlay?.probability?.homeWinPercentage) {
-    trueProbHome = Math.min(0.99, Math.max(0.01, comp.situation.lastPlay.probability.homeWinPercentage));
+    rawTrueProbHome = comp.situation.lastPlay.probability.homeWinPercentage;
   } else {
-    trueProbHome = Math.min(0.85, Math.max(0.25, 0.52 + (consensusSpread < 0 ? 0.08 : -0.06)));
+    rawTrueProbHome = 0.52 + (consensusSpread < 0 ? 0.08 : -0.06);
   }
 
   const impliedProbHome = 0.524;
-  const mathematicalEdgeHome = Math.round((trueProbHome - impliedProbHome) * 1000) / 1000;
 
-  const fairMlHome = trueProbHome >= 0.5
-    ? Math.round(-100 * (trueProbHome / (1 - trueProbHome)))
-    : Math.round(100 * ((1 - trueProbHome) / trueProbHome));
-  const fairMlAway = -fairMlHome;
+  // PRE-PREDICTION CALIBRATION VERIFICATION GATE:
+  // Strictly verifies Platt calibration, bounded probability, and non-violation of invariants
+  const verifiedCalibration = verifyAndCalibrateBeforePrediction(
+    sport,
+    rawTrueProbHome,
+    impliedProbHome,
+    weights
+  );
+
+  const trueProbHome = verifiedCalibration.trueProbabilityHome;
+  const mathematicalEdgeHome = verifiedCalibration.mathematicalEdgeHome;
+  const fairMlHome = verifiedCalibration.fairMoneylineHome;
+  const fairMlAway = verifiedCalibration.fairMoneylineAway;
 
   // Venue & Weather
   const venueName = comp.venue?.fullName 
@@ -280,19 +303,6 @@ function transformEspnEventToGame(event: EspnEvent, sport: SportType, sourceUrl?
     publicBetPctHome: 64,
     sharpMoneyPctHome: 52,
     lineMovementVelocity: +0.05,
-  };
-
-  const weights: CalibratedWeights = {
-    weatherWeight: 1.15,
-    weatherOptimal: 1.15,
-    marketOddsWeight: 0.85,
-    marketOddsOptimal: 0.85,
-    pitchingOrQbWeight: 1.50,
-    pitchingOrQbOptimal: 1.50,
-    recentFormWeight: 1.10,
-    recentFormOptimal: 1.10,
-    travelFatigueWeight: 0.90,
-    travelFatigueOptimal: 0.90,
   };
 
   // Zero-Fabrication Provenance Certification

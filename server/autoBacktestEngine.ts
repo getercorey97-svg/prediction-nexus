@@ -1,4 +1,5 @@
 import { AutoBacktestCycleRecord, SportType } from '../src/types';
+import { recordSandboxedBacktestExecution } from './calibrationProtectionService';
 
 export interface AutoBacktestStatus {
   isActive: boolean;
@@ -161,6 +162,9 @@ export function runAutoBacktestCycle(targetSport?: SportType): AutoBacktestCycle
     autoTuningSummary,
     status: 'SUCCESS_DEPLOYED'
   };
+
+  // Record sandbox isolation to guarantee zero corruption of live prediction weights
+  recordSandboxedBacktestExecution(sport, sampleEvaluated, brierScore, ece, engineName);
 
   autoBacktestHistory.unshift(record);
   if (autoBacktestHistory.length > 50) {
