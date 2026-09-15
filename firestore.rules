@@ -14,7 +14,7 @@ service cloud.firestore {
     match /prediction_records/{recordId} {
       allow read: if true;
       allow create, update: if request.resource.data.gameId is string
-        && request.resource.data.sport in ['MLB', 'NFL', 'CFB', 'TABLE_TENNIS']
+        && request.resource.data.sport in ['MLB', 'NFL', 'CFB', 'TENNIS', 'TABLE_TENNIS']
         && isValidString(request.resource.data.matchup, 3, 150)
         && request.resource.data.brierScore is number
         && request.resource.data.brierScore >= 0.0 && request.resource.data.brierScore <= 2.0
@@ -25,7 +25,7 @@ service cloud.firestore {
     // Sport Calibrations: Publicly readable; writes must contain valid weights and bounds
     match /sport_calibrations/{sportId} {
       allow read: if true;
-      allow create, update: if sportId in ['MLB', 'NFL', 'CFB', 'TABLE_TENNIS']
+      allow create, update: if sportId in ['MLB', 'NFL', 'CFB', 'TENNIS', 'TABLE_TENNIS']
         && request.resource.data.sport == sportId
         && request.resource.data.weights is map
         && request.resource.data.weights.weatherWeight is number
@@ -41,7 +41,7 @@ service cloud.firestore {
     match /learning_events/{eventId} {
       allow read: if true;
       allow create: if isValidString(request.resource.data.id, 3, 100)
-        && request.resource.data.sport in ['MLB', 'NFL', 'CFB', 'TABLE_TENNIS']
+        && request.resource.data.sport in ['MLB', 'NFL', 'CFB', 'TENNIS', 'TABLE_TENNIS']
         && isValidString(request.resource.data.eventDescription, 5, 500)
         && isTimestampString(request.resource.data.timestamp);
       allow update, delete: if false;

@@ -11,7 +11,8 @@ import {
   Search, 
   Users, 
   Zap,
-  ChevronUp
+  ChevronUp,
+  Calendar
 } from 'lucide-react';
 import { SportType, UserSession } from '../types';
 
@@ -135,6 +136,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span>VALUE BETS</span>
           </button>
           <button
+            id="nav-calendar-btn"
+            onClick={() => onNavigate('CALENDAR')}
+            className="px-3 py-1 text-xs font-mono font-medium rounded text-cyan-300 hover:bg-cyan-950/40 border border-cyan-800/60 flex items-center space-x-1 cursor-pointer"
+            title="Factual Match Calendar with accurate dates, times & clear bet signals"
+          >
+            <Calendar className="w-3.5 h-3.5 mr-1 text-cyan-400" />
+            <span>CALENDAR</span>
+          </button>
+          <button
             id="nav-accuracy-btn"
             onClick={() => onNavigate('ACCURACY_LEDGER')}
             className="px-3 py-1 text-xs font-mono font-medium rounded text-emerald-300 hover:bg-emerald-950/40 border border-emerald-800/60 flex items-center space-x-1 cursor-pointer"
@@ -148,7 +158,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             { id: 'MLB', label: 'MLB HUB' },
             { id: 'NFL', label: 'NFL HUB' },
             { id: 'CFB', label: 'CFB HUB' },
-            { id: 'TABLE_TENNIS', label: 'TT ORACLE' },
+            { id: 'TENNIS', label: 'TENNIS SOTA' },
           ] as const).map(({ id: sport, label }) => {
             const isActive = activeSport === sport;
             return (

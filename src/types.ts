@@ -1,4 +1,4 @@
-export type SportType = 'MLB' | 'NFL' | 'CFB' | 'TABLE_TENNIS';
+export type SportType = 'MLB' | 'NFL' | 'CFB' | 'TENNIS' | 'TABLE_TENNIS';
 
 export type MlbMarket = 
   | 'F5_MONEYLINE' 
@@ -15,6 +15,13 @@ export type FootballMarket =
   | 'RB_RUSHING_YARDS' 
   | 'QUARTER_MONEYLINES';
 
+export type TennisMarket =
+  | 'MATCH_MONEYLINE'
+  | 'GAMES_SPREAD'
+  | 'TOTAL_GAMES_OU'
+  | 'SET_BETTING'
+  | 'FIRST_SET_WINNER';
+
 export type TableTennisMarket =
   | 'MATCH_WINNER'
   | 'TOTAL_POINTS_OU'
@@ -22,7 +29,7 @@ export type TableTennisMarket =
   | 'EXACT_SET_SCORE'
   | 'SET_1_WINNER';
 
-export type BettingMarket = MlbMarket | FootballMarket | TableTennisMarket;
+export type BettingMarket = MlbMarket | FootballMarket | TennisMarket | TableTennisMarket;
 
 export interface WeatherVariables {
   temperatureF: number;
@@ -90,6 +97,25 @@ export interface MarketTargetDetail {
   optimalCalibrationVariance: number;
 }
 
+// Clear Indicator on which bets to make (Geter Principle Verified)
+export type BetActionGrade = 'STRONG_VALUE' | 'MODERATE_LEAN' | 'PASS';
+
+export interface BetRecommendation {
+  action: BetActionGrade; // 'STRONG_VALUE' | 'MODERATE_LEAN' | 'PASS'
+  targetSport: SportType;
+  marketName: string; // e.g. "Moneyline", "Game Spread -2.5", "Under 22.5 Games"
+  betSelection: string; // e.g. "Carlos Alcaraz ML (-155)", "Dodgers F5 ML (-135)"
+  confidenceTier: 'MAX_ALPHA' | 'HIGH' | 'MODERATE' | 'NEUTRAL_PASS';
+  edgePct: number; // e.g. 5.8%
+  expectedValueRoiPct: number; // e.g. 9.4%
+  recommendedUnits: number; // e.g. 1.5 units
+  plainEnglishReason: string; // Plain-English 1-sentence explanation without confusing jargon
+  fanDuelOdds: number | string; // e.g. -155
+  impliedWinPct: number; // e.g. 60.8%
+  modelWinPct: number; // e.g. 66.6%
+  geterPrincipleVerified: boolean; // Zero data leakage, strict complementary probability
+}
+
 export interface DataProvenance {
   source: string;
   eventId: string;
@@ -151,6 +177,19 @@ export interface Game {
   marketTargets: MarketTargetDetail[];
   playerProps: PlayerPropTarget[];
 
+  // Clear Indicator on which bets to make (FanDuel-calibrated, Geter Principle audited)
+  clearBetRecommendation?: BetRecommendation;
+  fanDuelOdds?: {
+    moneylineHome: number;
+    moneylineAway: number;
+    spread?: number;
+    spreadOddsHome?: number;
+    spreadOddsAway?: number;
+    total?: number;
+    totalOverOdds?: number;
+    totalUnderOdds?: number;
+  };
+
   // Factual post-mortem (if FINAL or LIVE current)
   actualResult?: {
     homeScore: number;
@@ -158,6 +197,9 @@ export interface Game {
     actualTotal: number;
     f5HomeScore?: number;
     f5AwayScore?: number;
+    setScores?: string;
+    inningsBreakdown?: string;
+    quarterScores?: string;
     winner: string;
     brierLoss: number;
     calibrationDelta: number;
@@ -168,6 +210,24 @@ export interface Game {
     predictionOutcome?: 'WIN' | 'LOSS' | 'PUSH';
     engineUpgradesMade?: string[];
     autonomousRefactorSummary?: string;
+    resultProvenance?: {
+      source: string;
+      verifiedAt: string;
+      officialVerificationHash: string;
+    };
+    failureAnalysis?: {
+      rootCause: string;
+      primaryDeviationFactor: string;
+      parameterAdjustments: Array<{
+        parameter: string;
+        previousValue: number | string;
+        upgradedValue: number | string;
+        direction: 'INCREASED' | 'DECREASED' | 'REFACTORED';
+        rationale: string;
+      }>;
+      safeguardEstablished: string;
+      persistedMemoryLocation: string;
+    };
   };
 
   // Live game telemetry (if LIVE)
@@ -179,6 +239,31 @@ export interface Game {
     possessionOrBatting: string;
     currentDownOrCount: string;
     winProbabilityInGame: number;
+  };
+
+  // Dynamic live in-game prediction updates (recalculated in real-time with each live score/play shift)
+  liveInGamePrediction?: {
+    liveHomeWinProb: number;
+    liveAwayWinProb: number;
+    preGameHomeProb: number;
+    probabilityShiftDelta: number; // e.g. +0.145 (+14.5% shift since opening lock)
+    shiftDirection: 'HOME_SURGE' | 'AWAY_SURGE' | 'NEUTRAL';
+    liveFairMoneylineHome: number;
+    liveFairMoneylineAway: number;
+    liveProjectedTotal: number;
+    liveProjectedSpread: number;
+    liveValueOpportunity?: {
+      betType: string;
+      marketLiveOdds: string | number;
+      modelLiveProb: number;
+      edgePct: number;
+      action: 'STRONG_LIVE_VALUE' | 'MODERATE_LIVE_LEAN' | 'PASS';
+      reasoning: string;
+    };
+    lastRecalculatedAt: string;
+    inGamePace: string;
+    leverageIndex: number;
+    latestEventSummary?: string;
   };
 }
 
@@ -406,7 +491,8 @@ export interface AccuracyRecordSummary {
     MLB: { total: number; accurate: number; inaccurate: number; pushes: number; rate: number; profitUnits: number; brierScore: number };
     NFL: { total: number; accurate: number; inaccurate: number; pushes: number; rate: number; profitUnits: number; brierScore: number };
     CFB: { total: number; accurate: number; inaccurate: number; pushes: number; rate: number; profitUnits: number; brierScore: number };
-    TABLE_TENNIS: { total: number; accurate: number; inaccurate: number; pushes: number; rate: number; profitUnits: number; brierScore: number };
+    TENNIS?: { total: number; accurate: number; inaccurate: number; pushes: number; rate: number; profitUnits: number; brierScore: number };
+    TABLE_TENNIS?: { total: number; accurate: number; inaccurate: number; pushes: number; rate: number; profitUnits: number; brierScore: number };
   };
   recentTrend: Array<{
     id: string;
@@ -450,6 +536,202 @@ export interface EngineLearningAction {
     brierDeltaPct: number;
   };
   status: 'ACTIVE_IN_PRODUCTION' | 'DEPLOYED_TO_ENGINE';
+}
+
+// ==========================================
+// SOTA TENNIS PREDICTION FRAMEWORK (ATP / WTA / FANDUEL)
+// ==========================================
+export type TennisSurface = 'HARD' | 'CLAY' | 'GRASS' | 'INDOOR_HARD';
+export type CourtPaceIndex = 'SLOW' | 'MEDIUM_SLOW' | 'MEDIUM' | 'MEDIUM_FAST' | 'FAST';
+export type TennisTour = 'ATP' | 'WTA';
+
+export interface TennisPlayer {
+  id: string;
+  name: string;
+  tour: TennisTour;
+  country: string;
+  rank: number;
+  surfaceElo: {
+    overall: number;
+    hard: number;
+    clay: number;
+    grass: number;
+    indoorHard: number;
+  };
+  rd: number; // Rating deviation
+  handedness: 'Right' | 'Left';
+  backhandType: 'One-Handed' | 'Two-Handed';
+  heightInCm: number;
+  // Serve & Return Micro-Metrics (Klaassen-Magnus / O'Malley Model)
+  firstServeInPct: number;
+  firstServeWonPct: number;
+  secondServeWonPct: number;
+  acesPerMatch: number;
+  doubleFaultsPerMatch: number;
+  returnPointsWonPct: number;
+  breakPointsConvertedPct: number;
+  breakPointsSavedPct: number;
+  dominanceRatio: number;
+  tiebreakWinPct: number;
+  fatigueIndex: number; // 0.0 - 1.0
+  restDays: number;
+  winLossSeason: { wins: number; losses: number };
+  recentForm: Array<'W' | 'L'>;
+  commentaryNotes: string;
+  headToHeadHistory?: Record<string, { wins: number; losses: number; lastMeeting: string }>;
+}
+
+export interface TennisSimulationResult {
+  player1: TennisPlayer;
+  player2: TennisPlayer;
+  surface: TennisSurface;
+  courtPaceIndex: CourtPaceIndex;
+  bestOfSets: 3 | 5;
+  iterations: number;
+  p1WinProbability: number;
+  p2WinProbability: number;
+  p1FairMoneyline: number;
+  p2FairMoneyline: number;
+  marketFanDuelP1?: number;
+  marketFanDuelP2?: number;
+  edgeP1?: number;
+  edgeP2?: number;
+  clearBetRecommendation: BetRecommendation;
+  markovProbabilities: {
+    p1ServePointProb: number;
+    p2ServePointProb: number;
+    p1HoldGameProb: number;
+    p2HoldGameProb: number;
+    tiebreakP1Prob: number;
+    set1P1Prob: number;
+  };
+  gamesSpread: {
+    line: number;
+    p1CoverProb: number;
+    p2CoverProb: number;
+    fairOddsP1: number;
+    fairOddsP2: number;
+    marketOddsP1?: number;
+    marketOddsP2?: number;
+    recommendation?: string;
+  };
+  totalGames: {
+    mean: number;
+    median: number;
+    stdDev: number;
+    histogram: Array<{ bin: string; count: number; pct: number }>;
+    lines: Array<{
+      line: number;
+      overProb: number;
+      underProb: number;
+      overOdds: number;
+      underOdds: number;
+      recommendation?: 'OVER' | 'UNDER' | 'PASS';
+      edgePct?: number;
+    }>;
+  };
+  setScoreDistribution: Array<{
+    score: string;
+    probability: number;
+    fairOdds: number;
+    fanDuelOdds?: number;
+  }>;
+  breakdown: {
+    surfaceEloDelta: number;
+    serveDominanceRatio: number;
+    returnBreakAdvantage: number;
+    fatigueAdjustmentP1: number;
+    fatigueAdjustmentP2: number;
+    courtPaceAdjustment: string;
+    headToHeadStat: string;
+    geterPrincipleVerification: string;
+    algorithmsEnsemble: string[];
+  };
+  simulatedAt: string;
+}
+
+export interface TennisMatchScheduled {
+  id: string;
+  tournament: string;
+  tour: TennisTour;
+  surface: TennisSurface;
+  courtPaceIndex: CourtPaceIndex;
+  round: string;
+  courtName: string;
+  bestOfSets: 3 | 5;
+  scheduledTime: string;
+  startTimeUtc?: string;
+  gameDate?: string;
+  displayDate?: string;
+  displayTime?: string;
+  timeZone?: string;
+  status: 'UPCOMING' | 'LIVE' | 'FINAL';
+  p1: TennisPlayer;
+  p2: TennisPlayer;
+  marketFanDuel: {
+    moneylineP1: number;
+    moneylineP2: number;
+    gamesSpread: number;
+    gamesSpreadOddsP1: number;
+    gamesSpreadOddsP2: number;
+    totalGames: number;
+    totalGamesOverOdds: number;
+    totalGamesUnderOdds: number;
+    setBetting?: {
+      p1StraightSets?: number;
+      p1ThreeSets?: number;
+      p1FourSets?: number;
+      p1FiveSets?: number;
+      p2StraightSets?: number;
+      p2ThreeSets?: number;
+      p2FourSets?: number;
+      p2FiveSets?: number;
+    };
+  };
+  clearBetRecommendation?: BetRecommendation;
+  liveScore?: {
+    currentSet: number;
+    setsP1: number;
+    setsP2: number;
+    gamesP1: number;
+    gamesP2: number;
+    pointsP1: string;
+    pointsP2: string;
+    serving: 'P1' | 'P2';
+    isTiebreak: boolean;
+    tiebreakPointsP1?: number;
+    tiebreakPointsP2?: number;
+    completedSets: Array<{ p1: number; p2: number }>;
+  };
+  finalResult?: {
+    winner: string;
+    setsP1: number;
+    setsP2: number;
+    totalGames: number;
+    setScores: string;
+    brierScore: number;
+    learningLogged: boolean;
+    predictionOutcome?: 'WIN' | 'LOSS' | 'PUSH';
+    enginePredictedPick?: string;
+    enginePredictedProb?: number;
+    enginePredictedEdge?: number;
+    consensusLine?: string;
+    engineUpgradesMade?: string[];
+    autonomousRefactorSummary?: string;
+    failureAnalysis?: {
+      rootCause: string;
+      primaryDeviationFactor: string;
+      parameterAdjustments: Array<{
+        parameter: string;
+        previousValue: number | string;
+        upgradedValue: number | string;
+        direction: 'INCREASED' | 'DECREASED' | 'REFACTORED';
+        rationale: string;
+      }>;
+      safeguardEstablished: string;
+      persistedMemoryLocation: string;
+    };
+  };
 }
 
 export interface TableTennisPlayer {

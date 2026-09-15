@@ -10,8 +10,8 @@ import {
 } from 'lucide-react';
 
 interface MobileBottomNavProps {
-  currentView: 'PERSONAL_HOMEPAGE' | 'MASTER_DASHBOARD' | 'TABLE_TENNIS';
-  onSelectView: (view: 'PERSONAL_HOMEPAGE' | 'MASTER_DASHBOARD' | 'TABLE_TENNIS') => void;
+  currentView: 'PERSONAL_HOMEPAGE' | 'MASTER_DASHBOARD' | 'TENNIS' | 'TABLE_TENNIS';
+  onSelectView: (view: 'PERSONAL_HOMEPAGE' | 'MASTER_DASHBOARD' | 'TENNIS') => void;
   onOpenMatchSearch: () => void;
   onOpenPlayerLookup: () => void;
   onOpenAutoBacktest: () => void;
@@ -72,18 +72,18 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         <span className="text-[10px] font-mono">Search</span>
       </button>
 
-      {/* 4. Table Tennis 50k Hub */}
+      {/* 4. Tennis SOTA Hub */}
       <button
-        id="btn-nav-mobile-tt"
-        onClick={() => onSelectView('TABLE_TENNIS')}
+        id="btn-nav-mobile-tennis"
+        onClick={() => onSelectView('TENNIS')}
         className={`flex flex-col items-center justify-center min-w-[52px] min-h-[48px] py-1 px-2 rounded-xl transition-all ${
-          currentView === 'TABLE_TENNIS'
+          currentView === 'TENNIS' || (currentView as string) === 'TABLE_TENNIS'
             ? 'text-cyan-400 font-bold bg-cyan-950/40'
             : 'text-slate-400 hover:text-slate-200'
         }`}
       >
         <Zap className="w-5 h-5 mb-0.5 text-cyan-300" />
-        <span className="text-[10px] font-mono">TT Sim</span>
+        <span className="text-[10px] font-mono">Tennis</span>
       </button>
 
       {/* 5. Live Players Lookup */}

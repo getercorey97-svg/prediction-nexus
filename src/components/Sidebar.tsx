@@ -16,7 +16,8 @@ import {
   ChevronLeft,
   Moon,
   Zap,
-  Cpu
+  Cpu,
+  Calendar
 } from 'lucide-react';
 import { SportType } from '../types';
 
@@ -65,6 +66,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       category: 'COMMAND',
     },
     {
+      id: 'CALENDAR',
+      label: 'Match Calendar Slate',
+      badge: 'DATES & TIMES',
+      icon: Calendar,
+      description: 'Factual match schedules, start times & clear bet signals',
+      category: 'COMMAND',
+    },
+    {
       id: 'MASTER',
       label: 'Master Nexus Radar',
       badge: 'AGGREGATED',
@@ -83,11 +92,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
     // Category 2: SPORT ENGINES (ISOLATED)
     {
-      id: 'TABLE_TENNIS',
-      label: 'Table Tennis Oracle',
-      badge: '50K MC SIM',
+      id: 'TENNIS',
+      label: 'Tennis SOTA Engine',
+      badge: 'FANDUEL SOTA',
       icon: Trophy,
-      description: 'Pandora Circuit, Glicko-2, Style-Rubber Prior',
+      description: 'ATP & WTA, Klaassen-Magnus Markov, CPI Court Pace',
       category: 'ENGINES',
     },
     {
@@ -226,8 +235,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     id={`sidebar-nav-${item.id.toLowerCase()}`}
                     onClick={() => {
                       onNavigate(item.id);
-                      if (item.id === 'MLB' || item.id === 'NFL' || item.id === 'CFB' || item.id === 'TABLE_TENNIS') {
-                        onSelectSport(item.id);
+                      if (item.id === 'MLB' || item.id === 'NFL' || item.id === 'CFB' || item.id === 'TENNIS' || item.id === 'TABLE_TENNIS') {
+                        onSelectSport(item.id as any);
                       } else if (item.id === 'MASTER') {
                         onSelectSport('ALL');
                       }

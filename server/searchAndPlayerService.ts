@@ -1,6 +1,6 @@
-import { MatchSearchResult, SportType, TableTennisPlayer } from '../src/types';
+import { MatchSearchResult, SportType } from '../src/types';
 import { mockGames } from './data/sportsStore';
-import { tableTennisScheduledMatches, tableTennisPlayers } from './tableTennisEngine';
+import { tennisScheduledMatches, tennisPlayers } from './tennisEngine';
 
 export interface MultiSportPlayerProfile {
   id: string;
@@ -42,130 +42,137 @@ export interface MultiSportPlayerProfile {
 
 // Initial Cross-Sport Star Players Database
 let crossSportPlayers: MultiSportPlayerProfile[] = [
-  // Table Tennis Stars
+  // Tennis World Stars (FanDuel Active Markets)
   {
-    id: 'tt-p-moregard',
-    name: 'Truls Möregårdh',
-    sport: 'TABLE_TENNIS',
-    teamOrCountry: 'Sweden',
-    leagueOrTournament: 'WTT Contender / Olympic Elite',
-    primaryRole: 'Attacker (Shakehand Righty)',
-    ratingOrQbr: 2154,
-    rdOrVariance: 33,
-    winLossSeason: { wins: 44, losses: 14 },
+    id: 'tennis-p-sinner',
+    name: 'Jannik Sinner',
+    sport: 'TENNIS',
+    teamOrCountry: 'Italy',
+    leagueOrTournament: 'ATP Tour / Grand Slam Elite',
+    primaryRole: 'Aggressive Baselines / Right-Handed (Two-Handed Backhand)',
+    ratingOrQbr: 2280,
+    rdOrVariance: 28,
+    winLossSeason: { wins: 65, losses: 6 },
     winLossLast10: { wins: 9, losses: 1 },
-    winStreak: '🔥 4W Streak',
-    recentForm: ['W', 'W', 'W', 'W', 'L', 'W', 'W', 'W', 'W', 'W'],
-    matchesToday: 1,
+    winStreak: '🔥 8W Streak',
+    recentForm: ['W', 'W', 'W', 'W', 'W', 'W', 'W', 'W', 'L', 'W'],
+    matchesToday: 0,
+    fatigueIndex: 0.08,
+    tacticalMetrics: {
+      label1: '1st Serve In %', val1: '65.2%',
+      label2: '1st Serve Won %', val2: '80.4%',
+      label3: '2nd Serve Won %', val3: '58.2%',
+      label4: 'Break Pts Saved %', val4: '74.5%'
+    },
+    equipmentOrBio: 'Head Speed MP • Luxilon ALU Power strings • Heavy topspin baseline aggression',
+    scoutingNotes: 'World No. 1. Unrivaled groundstroke velocity from both wings. Exceptional return depth and high hold conversion on fast hardcourts.',
+    headToHeadHistory: {
+      'Carlos Alcaraz': { wins: 4, losses: 6, lastMeeting: '2026-06-07' },
+      'Daniil Medvedev': { wins: 7, losses: 7, lastMeeting: '2026-09-04' },
+      'Novak Djokovic': { wins: 4, losses: 4, lastMeeting: '2026-01-26' }
+    },
+    recentMatchesLog: [
+      { date: '2026-09-08', opponent: 'Taylor Fritz', result: 'W', score: '6-3, 6-4, 7-5', event: 'US Open Final' },
+      { date: '2026-09-06', opponent: 'Jack Draper', result: 'W', score: '7-5, 7-6, 6-2', event: 'US Open Semi-Final' }
+    ],
+    lastLiveUpdate: new Date().toISOString()
+  },
+  {
+    id: 'tennis-p-alcaraz',
+    name: 'Carlos Alcaraz',
+    sport: 'TENNIS',
+    teamOrCountry: 'Spain',
+    leagueOrTournament: 'ATP Tour / Grand Slam Elite',
+    primaryRole: 'All-Court Phenom / Right-Handed (Two-Handed Backhand)',
+    ratingOrQbr: 2260,
+    rdOrVariance: 30,
+    winLossSeason: { wins: 52, losses: 10 },
+    winLossLast10: { wins: 8, losses: 2 },
+    winStreak: '🔥 3W Streak',
+    recentForm: ['W', 'W', 'W', 'L', 'W', 'W', 'W', 'W', 'L', 'W'],
+    matchesToday: 0,
     fatigueIndex: 0.12,
     tacticalMetrics: {
-      label1: 'Serve Win %', val1: '62.5%',
-      label2: 'Return Win %', val2: '51.8%',
-      label3: '3rd-Ball Attack %', val3: '68.4%',
-      label4: 'Deuce Win %', val4: '59.2%'
+      label1: '1st Serve In %', val1: '64.0%',
+      label2: '1st Serve Won %', val2: '76.8%',
+      label3: 'Drop Shot Win %', val3: '72.0%',
+      label4: 'Return Games Won %', val4: '33.5%'
     },
-    equipmentOrBio: 'Stiga Cybershape Carbon • Inverted DNA Pro FH / Inverted DNA Platinum BH',
-    scoutingNotes: 'Olympic Silver Medalist with patented hexagonal Cybershape blade. Elite variation in heavy-underspin punch chops and deceptive backhand flips. Highly dangerous in close-table transitions.',
+    equipmentOrBio: 'Babolat Pure Aero 98 • RPM Blast strings • Explosive court coverage',
+    scoutingNotes: 'Multi-surface Grand Slam champion. Unmatched lateral acceleration and deceptive drop shots. Overpowers baseline opponents on clay and grass.',
     headToHeadHistory: {
-      'Hugo Calderano': { wins: 4, losses: 3, lastMeeting: '2026-07-14' },
-      'Dimitrij Ovtcharov': { wins: 3, losses: 2, lastMeeting: '2026-08-02' },
-      'Dang Qiu': { wins: 5, losses: 1, lastMeeting: '2026-06-20' }
+      'Jannik Sinner': { wins: 6, losses: 4, lastMeeting: '2026-06-07' },
+      'Novak Djokovic': { wins: 3, losses: 4, lastMeeting: '2026-08-04' }
     },
     recentMatchesLog: [
-      { date: '2026-09-12', opponent: 'Hugo Calderano', result: 'W', score: '3-2 (11-9, 9-11, 11-7, 8-11, 12-10)', event: 'WTT Champions Semi-Final' },
-      { date: '2026-09-08', opponent: 'Dang Qiu', result: 'W', score: '3-1 (11-6, 8-11, 11-8, 11-9)', event: 'European Top 16' },
-      { date: '2026-09-01', opponent: 'Dimitrij Ovtcharov', result: 'W', score: '3-0 (11-7, 11-5, 11-8)', event: 'German Open' }
+      { date: '2026-09-14', opponent: 'Alexander Zverev', result: 'W', score: '6-4, 6-3', event: 'Laver Cup' },
+      { date: '2026-09-12', opponent: 'Taylor Fritz', result: 'W', score: '6-2, 7-5', event: 'Laver Cup' }
     ],
     lastLiveUpdate: new Date().toISOString()
   },
   {
-    id: 'tt-p-calderano',
-    name: 'Hugo Calderano',
-    sport: 'TABLE_TENNIS',
-    teamOrCountry: 'Brazil',
-    leagueOrTournament: 'WTT Contender / Olympic Elite',
-    primaryRole: 'Power Attacker (Shakehand Righty)',
-    ratingOrQbr: 2182,
-    rdOrVariance: 31,
-    winLossSeason: { wins: 47, losses: 12 },
-    winLossLast10: { wins: 9, losses: 1 },
-    winStreak: '🔥 3W Streak',
-    recentForm: ['W', 'W', 'W', 'L', 'W', 'W', 'W', 'W', 'W', 'W'],
-    matchesToday: 0,
-    fatigueIndex: 0.05,
-    tacticalMetrics: {
-      label1: 'Serve Win %', val1: '63.2%',
-      label2: 'Return Win %', val2: '53.1%',
-      label3: '3rd-Ball Attack %', val3: '71.0%',
-      label4: 'Deuce Win %', val4: '62.5%'
-    },
-    equipmentOrBio: 'Cornilleau Gatien Conquest • Target Pro GT-X51 Inverted on both sides',
-    scoutingNotes: 'Tremendous baseline athleticism and premier backhand kill velocity on the global tour. High first-serve ace conversion and aggressive deep placement.',
-    headToHeadHistory: {
-      'Truls Möregårdh': { wins: 3, losses: 4, lastMeeting: '2026-07-14' },
-      'Dimitrij Ovtcharov': { wins: 4, losses: 2, lastMeeting: '2026-05-19' }
-    },
-    recentMatchesLog: [
-      { date: '2026-09-11', opponent: 'Felix Lebrun', result: 'W', score: '3-1 (11-9, 11-8, 9-11, 11-7)', event: 'WTT Contender Rio' },
-      { date: '2026-09-05', opponent: 'M. Pylypchuk', result: 'W', score: '3-0 (11-4, 11-6, 11-5)', event: 'Super Series Prague' }
-    ],
-    lastLiveUpdate: new Date().toISOString()
-  },
-  {
-    id: 'tt-p-pylypchuk',
-    name: 'M. Pylypchuk',
-    sport: 'TABLE_TENNIS',
-    teamOrCountry: 'Ukraine',
-    leagueOrTournament: 'Pandora / Setka Cup',
-    primaryRole: 'Forehand Attacker (Shakehand Righty)',
-    ratingOrQbr: 1684,
-    rdOrVariance: 46,
-    winLossSeason: { wins: 144, losses: 98 },
+    id: 'tennis-p-djokovic',
+    name: 'Novak Djokovic',
+    sport: 'TENNIS',
+    teamOrCountry: 'Serbia',
+    leagueOrTournament: 'ATP Tour / Grand Slam Elite',
+    primaryRole: 'All-Court Master / Right-Handed (Two-Handed Backhand)',
+    ratingOrQbr: 2270,
+    rdOrVariance: 29,
+    winLossSeason: { wins: 38, losses: 8 },
     winLossLast10: { wins: 8, losses: 2 },
     winStreak: '🔥 2W Streak',
-    recentForm: ['W', 'W', 'L', 'W', 'W', 'L', 'W', 'W', 'W', 'L'],
-    matchesToday: 3,
-    fatigueIndex: 0.42,
+    recentForm: ['W', 'W', 'L', 'W', 'W', 'W', 'W', 'W', 'W', 'W'],
+    matchesToday: 0,
+    fatigueIndex: 0.15,
     tacticalMetrics: {
-      label1: 'Serve Win %', val1: '58.4%',
-      label2: 'Return Win %', val2: '48.6%',
-      label3: '3rd-Ball Attack %', val3: '62.1%',
-      label4: 'Deuce Win %', val4: '53.0%'
+      label1: 'Return Points Won %', val1: '43.2%',
+      label2: 'Tiebreak Win %', val2: '74.8%',
+      label3: '2nd Serve Won %', val3: '57.4%',
+      label4: 'Break Pt Conv %', val4: '48.9%'
     },
-    equipmentOrBio: 'Butterfly Viscaria ALC • Tenergy 05 FH / Dignics 05 BH',
-    scoutingNotes: 'High-volume Setka Cup regular with explosive forehand topspin. Shows minor fatigue in 4th and 5th sets when playing 3+ matches in the morning block.',
+    equipmentOrBio: 'Head Speed Pro • Luxilon 4G strings • 24 Grand Slam Titles',
+    scoutingNotes: 'Greatest return of serve in tennis history. Unmatched clutch performance in 5th-set deciders and deuce break point conversions.',
+    headToHeadHistory: {
+      'Jannik Sinner': { wins: 4, losses: 4, lastMeeting: '2026-01-26' },
+      'Carlos Alcaraz': { wins: 4, losses: 3, lastMeeting: '2026-08-04' }
+    },
     recentMatchesLog: [
-      { date: '2026-09-13', opponent: 'A. Tkachenko', result: 'W', score: '3-2 (11-9, 8-11, 11-7, 9-11, 11-8)', event: 'Setka Cup Morning Slate' },
-      { date: '2026-09-13', opponent: 'V. Vakulenko', result: 'W', score: '3-1 (11-6, 11-8, 8-11, 11-5)', event: 'Setka Cup Morning Slate' }
+      { date: '2026-09-14', opponent: 'Taylor Fritz', result: 'W', score: '6-4, 7-6', event: 'Shanghai Masters' },
+      { date: '2026-09-10', opponent: 'Alex de Minaur', result: 'W', score: '6-2, 6-1', event: 'Davis Cup' }
     ],
     lastLiveUpdate: new Date().toISOString()
   },
   {
-    id: 'tt-p-tkachenko',
-    name: 'A. Tkachenko',
-    sport: 'TABLE_TENNIS',
-    teamOrCountry: 'Ukraine',
-    leagueOrTournament: 'Pandora / Setka Cup',
-    primaryRole: 'Southpaw Attacker (Left-Handed Hook)',
-    ratingOrQbr: 1718,
-    rdOrVariance: 42,
-    winLossSeason: { wins: 158, losses: 89 },
-    winLossLast10: { wins: 8, losses: 2 },
-    winStreak: '🔥 3W Streak',
-    recentForm: ['W', 'W', 'W', 'W', 'L', 'W', 'W', 'W', 'L', 'W'],
-    matchesToday: 2,
-    fatigueIndex: 0.25,
+    id: 'tennis-p-medvedev',
+    name: 'Daniil Medvedev',
+    sport: 'TENNIS',
+    teamOrCountry: 'Neutral / ATP',
+    leagueOrTournament: 'ATP Tour / Grand Slam Elite',
+    primaryRole: 'Deep Baseline Counterpuncher / Right-Handed',
+    ratingOrQbr: 2210,
+    rdOrVariance: 32,
+    winLossSeason: { wins: 46, losses: 16 },
+    winLossLast10: { wins: 7, losses: 3 },
+    winStreak: '🔥 1W Streak',
+    recentForm: ['W', 'L', 'W', 'W', 'W', 'L', 'W', 'W', 'L', 'W'],
+    matchesToday: 0,
+    fatigueIndex: 0.10,
     tacticalMetrics: {
-      label1: 'Serve Win %', val1: '60.8%',
-      label2: 'Return Win %', val2: '51.4%',
-      label3: '3rd-Ball Attack %', val3: '65.2%',
-      label4: 'Deuce Win %', val4: '58.0%'
+      label1: 'Deep Return Pos %', val1: '88.5%',
+      label2: '1st Serve Unreturned %', val2: '38.2%',
+      label3: 'Long Rally Win %', val3: '62.4%',
+      label4: 'Hold Game %', val4: '84.0%'
     },
-    equipmentOrBio: 'Tibhar Samsonov Force Pro • Evolution MX-P FH / Evolution EL-P BH',
-    scoutingNotes: 'Southpaw with sharp hook serve breaking into right-handed players. Exceptional win rate against standard inverted counter-hitters.',
+    equipmentOrBio: 'Tecnifibre TFight 305 • Razor Code White strings • Deep return position',
+    scoutingNotes: 'Hardcourt specialist with ultra-flat groundstrokes and deep court return positioning. High win rates against attacking serve-and-volley players.',
+    headToHeadHistory: {
+      'Jannik Sinner': { wins: 7, losses: 7, lastMeeting: '2026-09-04' },
+      'Alexander Zverev': { wins: 12, losses: 7, lastMeeting: '2026-01-26' }
+    },
     recentMatchesLog: [
-      { date: '2026-09-13', opponent: 'O. Yeremenko', result: 'W', score: '3-0 (11-8, 11-5, 11-7)', event: 'Pandora Cup Day Slate' },
-      { date: '2026-09-12', opponent: 'V. Vakulenko', result: 'W', score: '3-1 (11-7, 9-11, 11-6, 12-10)', event: 'Pandora Cup Day Slate' }
+      { date: '2026-09-12', opponent: 'Matteo Berrettini', result: 'W', score: '7-5, 6-4', event: 'ATP 500 Vienna' },
+      { date: '2026-09-04', opponent: 'Jannik Sinner', result: 'L', score: '2-6, 6-1, 1-6, 4-6', event: 'US Open Quarter-Final' }
     ],
     lastLiveUpdate: new Date().toISOString()
   },
@@ -265,7 +272,7 @@ let crossSportPlayers: MultiSportPlayerProfile[] = [
  * Randomly advances 1-2 players with a simulated circuit result so records stay dynamically updating!
  */
 export function tickLivePlayerSimulation(): void {
-  const activePlayers = crossSportPlayers.filter(p => p.sport === 'TABLE_TENNIS');
+  const activePlayers = crossSportPlayers.filter(p => p.sport === 'TENNIS');
   if (activePlayers.length === 0) return;
 
   const target = activePlayers[Math.floor(Math.random() * activePlayers.length)];
@@ -308,30 +315,30 @@ export function searchAllMatches(query: string = '', sport: string = 'ALL', stat
   const q = query.toLowerCase().trim();
   const results: MatchSearchResult[] = [];
 
-  // 1. Table Tennis Matches
-  tableTennisScheduledMatches.forEach(m => {
-    const text = `${m.p1.name} ${m.p2.name} ${m.tournament} ${m.tableNumber}`.toLowerCase();
+  // 1. Tennis Matches (SOTA Markov Chain Engine)
+  tennisScheduledMatches.forEach(m => {
+    const text = `${m.p1.name} ${m.p2.name} ${m.tournament} ${m.courtName} ${m.surface}`.toLowerCase();
     const matchesQuery = !q || text.includes(q);
-    const matchesSport = sport === 'ALL' || sport === 'TABLE_TENNIS';
+    const matchesSport = sport === 'ALL' || sport === 'TENNIS';
     const matchesStatus = status === 'ALL' || m.status === status;
 
     if (matchesQuery && matchesSport && matchesStatus) {
       results.push({
         id: m.id,
-        sport: 'TABLE_TENNIS',
+        sport: 'TENNIS',
         tournamentOrLeague: m.tournament,
         matchupTitle: `${m.p1.name} vs ${m.p2.name}`,
-        subTitle: `${m.p1.rating} Elo (${m.p1.rubberBackhand}) vs ${m.p2.rating} Elo (${m.p2.rubberBackhand})`,
+        subTitle: `${m.surface} Court • CPI ${m.courtPaceIndex} • Best of ${m.bestOfSets}`,
         scheduledTime: m.scheduledTime,
         status: m.status,
-        venueOrTable: m.tableNumber,
+        venueOrTable: m.courtName,
         marketDetails: {
-          primaryLine: `O/U ${m.marketTotalPoints} Pts`,
-          moneylineHomeOrP1: m.marketMoneylineP1,
-          moneylineAwayOrP2: m.marketMoneylineP2,
-          totalLine: m.marketTotalPoints
+          primaryLine: `Total ${m.marketFanDuel.totalGames} Games (O ${m.marketFanDuel.totalGamesOverOdds})`,
+          moneylineHomeOrP1: m.marketFanDuel.moneylineP1,
+          moneylineAwayOrP2: m.marketFanDuel.moneylineP2,
+          totalLine: m.marketFanDuel.totalGames
         },
-        liveScoreSummary: m.liveScore ? `Set ${m.liveScore.currentSet}: ${m.liveScore.setsP1}-${m.liveScore.setsP2} (${m.liveScore.currentPointsP1}-${m.liveScore.currentPointsP2})` : undefined,
+        liveScoreSummary: m.liveScore ? `Set ${m.liveScore.currentSet}: ${m.liveScore.gamesP1}-${m.liveScore.gamesP2} (${m.liveScore.pointsP1}-${m.liveScore.pointsP2})` : undefined,
         rawTtMatchId: m.id
       });
     }

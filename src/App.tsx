@@ -14,7 +14,8 @@ import { MonorepoViewer } from './components/MonorepoViewer';
 import { AccuracyAndLearningHub } from './components/AccuracyAndLearningHub';
 import { AutonomousLearningHub } from './components/AutonomousLearningHub';
 import { ValueBetsRadarHub } from './components/ValueBetsRadarHub';
-import { TableTennisDashboard } from './components/TableTennisDashboard';
+import { CalendarPage } from './components/CalendarPage';
+import { TennisDashboard } from './components/TennisDashboard';
 import { AfterHoursDiscoveryHub } from './components/AfterHoursDiscoveryHub';
 import { MatchSearchModal } from './components/MatchSearchModal';
 import { PlayerLookupModal } from './components/PlayerLookupModal';
@@ -418,6 +419,9 @@ export default function App() {
               onNavigateToAccuracyLedger={() => {
                 setCurrentView('ACCURACY_LEDGER');
               }}
+              onNavigateToCalendar={() => {
+                setCurrentView('CALENDAR');
+              }}
               onNavigateToAfterHours={() => {
                 setCurrentView('AFTER_HOURS_DISCOVERY');
               }}
@@ -470,9 +474,9 @@ export default function App() {
             />
           )}
 
-          {/* VIEW: TABLE TENNIS SOTA ORACLE HUB */}
-          {user.isAuthenticated && currentView === 'TABLE_TENNIS' && (
-            <TableTennisDashboard />
+          {/* VIEW: SOTA TENNIS PREDICTION ENGINE (ATP / WTA / FANDUEL) */}
+          {user.isAuthenticated && (currentView === 'TENNIS' || currentView === 'TABLE_TENNIS') && (
+            <TennisDashboard />
           )}
 
           {/* VIEW: LIVE TELEMETRY GAME STREAM */}
@@ -507,8 +511,32 @@ export default function App() {
                 setCurrentView(sport);
               }}
               onNavigateToTableTennis={() => {
-                setActiveSport('TABLE_TENNIS');
-                setCurrentView('TABLE_TENNIS');
+                setActiveSport('TENNIS');
+                setCurrentView('TENNIS');
+              }}
+            />
+          )}
+
+          {/* VIEW: FACTUAL MATCH CALENDAR & SLATE NAVIGATOR */}
+          {user.isAuthenticated && currentView === 'CALENDAR' && (
+            <CalendarPage
+              games={games}
+              user={user}
+              onNavigateToSportHub={(sport, gameId) => {
+                if (sport === 'TENNIS' || (sport as string) === 'TABLE_TENNIS') {
+                  setActiveSport('TENNIS');
+                  setCurrentView('TENNIS');
+                } else {
+                  setActiveSport(sport);
+                  setCurrentView(sport);
+                  if (gameId) {
+                    setSelectedGameId(gameId);
+                  }
+                }
+              }}
+              onNavigateToLiveStream={(sport) => {
+                if (sport) setActiveSport(sport);
+                setCurrentView('LIVE_STREAM');
               }}
             />
           )}
@@ -581,8 +609,9 @@ export default function App() {
         isOpen={isMatchSearchOpen}
         onClose={() => setIsMatchSearchOpen(false)}
         onSelectMatch={(match) => {
-          if (match.sport === 'TABLE_TENNIS') {
-            setCurrentView('TABLE_TENNIS');
+          if (match.sport === 'TENNIS' || (match.sport as string) === 'TABLE_TENNIS') {
+            setActiveSport('TENNIS');
+            setCurrentView('TENNIS');
           } else {
             setActiveSport(match.sport);
             setCurrentView(match.sport);
@@ -601,8 +630,9 @@ export default function App() {
         isOpen={isPlayerLookupOpen}
         onClose={() => setIsPlayerLookupOpen(false)}
         initialPlayerName={selectedPlayerName}
-        onSelectForSim={(playerName) => {
-          setCurrentView('TABLE_TENNIS');
+        onSelectForSim={(_playerName) => {
+          setActiveSport('TENNIS');
+          setCurrentView('TENNIS');
         }}
       />
 
@@ -626,13 +656,16 @@ export default function App() {
             currentView={
               currentView === 'PERSONAL_HOME'
                 ? 'PERSONAL_HOMEPAGE'
-                : currentView === 'TABLE_TENNIS'
-                ? 'TABLE_TENNIS'
+                : (currentView === 'TENNIS' || currentView === 'TABLE_TENNIS')
+                ? 'TENNIS'
                 : 'MASTER_DASHBOARD'
             }
             onSelectView={(view) => {
               if (view === 'PERSONAL_HOMEPAGE') setCurrentView('PERSONAL_HOME');
-              else if (view === 'TABLE_TENNIS') setCurrentView('TABLE_TENNIS');
+              else if (view === 'TENNIS' || (view as string) === 'TABLE_TENNIS') {
+                setActiveSport('TENNIS');
+                setCurrentView('TENNIS');
+              }
               else setCurrentView('MASTER');
               if (!panelsPinned) setBottomPanelOpen(false);
             }}

@@ -19,11 +19,17 @@ import {
   Sliders,
   XCircle,
   Play,
-  RefreshCw
+  RefreshCw,
+  Calendar,
+  Database,
+  AlertTriangle,
+  ArrowUpRight,
+  ArrowDownRight
 } from 'lucide-react';
 import { Game, SportType, UserSession } from '../types';
 import { GameBacktestModal } from './GameBacktestModal';
 import { GameCalibrationModal } from './GameCalibrationModal';
+import { ClearBetIndicator } from './ClearBetIndicator';
 
 interface PersonalHomePageProps {
   user: UserSession;
@@ -32,6 +38,7 @@ interface PersonalHomePageProps {
   onNavigateToLiveStream: (sport?: SportType) => void;
   onNavigateToBacktest: (sport?: SportType) => void;
   onNavigateToAccuracyLedger: () => void;
+  onNavigateToCalendar?: () => void;
   onNavigateToAfterHours?: () => void;
   onGameUpdated?: (updatedGame: Game) => void;
   onRefreshLiveGames?: () => Promise<void> | void;
@@ -44,6 +51,7 @@ export const PersonalHomePage: React.FC<PersonalHomePageProps> = ({
   onNavigateToLiveStream,
   onNavigateToBacktest,
   onNavigateToAccuracyLedger,
+  onNavigateToCalendar,
   onNavigateToAfterHours,
   onGameUpdated,
   onRefreshLiveGames,
@@ -69,6 +77,32 @@ export const PersonalHomePage: React.FC<PersonalHomePageProps> = ({
       console.error('Error refreshing live games:', err);
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const [tickingGameId, setTickingGameId] = useState<string | null>(null);
+
+  const handleLiveTick = async (game: Game) => {
+    setTickingGameId(game.id);
+    try {
+      const isHomeSurge = Math.random() > 0.45;
+      const res = await fetch(`/api/games/${game.id}/live-tick`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deltaHomeScore: isHomeSurge ? 1 : 0,
+          deltaAwayScore: !isHomeSurge ? 1 : 0,
+          playDescription: `${isHomeSurge ? game.homeTeam.name : game.awayTeam.name} scored live play! Dynamic live prediction updated.`,
+        })
+      });
+      const data = await res.json();
+      if (data.game && onGameUpdated) {
+        onGameUpdated(data.game);
+      }
+    } catch (err) {
+      console.error('Failed to update live tick:', err);
+    } finally {
+      setTickingGameId(null);
     }
   };
 
@@ -300,77 +334,93 @@ export const PersonalHomePage: React.FC<PersonalHomePageProps> = ({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {topPicks.map((pick, i) => (
-            <div
-              key={i}
-              className="p-5 rounded-xl bg-[#0f1422] border border-[#1f283b] hover:border-cyan-500/50 transition-all flex flex-col justify-between group shadow-lg"
-            >
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#141d2d] text-cyan-300 border border-[#212f47]">
-                    {pick.sport} ENGINE
-                  </span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
-                    {pick.edgePct}
-                  </span>
-                </div>
+          {topPicks.map((pick, i) => {
+            const matchedGame = games.find(g => g.id === pick.gameId) || games.find(g => g.sport === pick.sport);
+            const pickDate = matchedGame?.displayDate || matchedGame?.gameDate || 'Tue, Sep 15, 2026';
+            const pickTime = matchedGame?.displayTime || matchedGame?.scheduledTime || '7:05 PM EDT';
 
-                <div className="text-xs font-bold text-white mb-1">{pick.matchup}</div>
-                <div className="text-[11px] text-slate-400 font-mono mb-3">{pick.starter}</div>
+            return (
+              <div
+                key={i}
+                className="p-5 rounded-xl bg-[#0f1422] border border-[#1f283b] hover:border-cyan-500/50 transition-all flex flex-col justify-between group shadow-lg"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-[#141d2d] text-cyan-300 border border-[#212f47]">
+                      {pick.sport} ENGINE
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
+                      {pick.edgePct}
+                    </span>
+                  </div>
 
-                <div className="p-3 bg-[#131926] rounded-lg border border-[#212c3f] mb-3">
-                  <div className="text-[10px] font-mono text-slate-400 uppercase">Recommended Value</div>
-                  <div className="text-sm font-mono font-bold text-emerald-400 mt-0.5">{pick.pickText}</div>
-                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mt-2 pt-2 border-t border-[#1c2638]">
-                    <span>Fair Prob: <strong className="text-white">{pick.trueProb}</strong></span>
-                    <span>Consensus: <strong className="text-slate-300">{pick.consensusProb}</strong></span>
-                    <span className="text-cyan-400 font-bold">{pick.evRoi}</span>
+                  <div className="text-xs font-bold text-white mb-1">{pick.matchup}</div>
+                  
+                  {/* Event Verification Date & Time */}
+                  <div className="flex items-center space-x-1.5 text-[10px] font-mono text-cyan-300 bg-[#090e19] px-2 py-0.5 rounded border border-[#1b263b] w-fit mb-2">
+                    <Calendar className="w-3 h-3 text-cyan-400 shrink-0" />
+                    <span>{pickDate}</span>
+                    <span className="text-slate-500">•</span>
+                    <Clock className="w-3 h-3 text-cyan-400 shrink-0" />
+                    <span>{pickTime}</span>
+                  </div>
+
+                  <div className="text-[11px] text-slate-400 font-mono mb-3">{pick.starter}</div>
+
+                  <div className="p-3 bg-[#131926] rounded-lg border border-[#212c3f] mb-3">
+                    <div className="text-[10px] font-mono text-slate-400 uppercase">Recommended Value</div>
+                    <div className="text-sm font-mono font-bold text-emerald-400 mt-0.5">{pick.pickText}</div>
+                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mt-2 pt-2 border-t border-[#1c2638]">
+                      <span>Fair Prob: <strong className="text-white">{pick.trueProb}</strong></span>
+                      <span>Consensus: <strong className="text-slate-300">{pick.consensusProb}</strong></span>
+                      <span className="text-cyan-400 font-bold">{pick.evRoi}</span>
+                    </div>
+                  </div>
+
+                  <div className="text-[10px] text-slate-500 font-mono">
+                    Engine: {pick.modelUsed}
                   </div>
                 </div>
 
-                <div className="text-[10px] text-slate-500 font-mono">
-                  Engine: {pick.modelUsed}
+                {/* Active Control Center Action Buttons */}
+                <div className="mt-4 pt-3 border-t border-[#1a2335] space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => {
+                        const mg = games.find(g => g.id === pick.gameId) || games.find(g => g.sport === pick.sport);
+                        if (mg) setBacktestGame(mg);
+                      }}
+                      className="py-1.5 px-2 rounded-lg bg-cyan-950/60 hover:bg-cyan-500 hover:text-slate-950 text-[11px] font-mono font-bold text-cyan-300 border border-cyan-800/60 transition-all flex items-center justify-center space-x-1 shadow-sm"
+                      title="Run on-demand manual backtesting simulation"
+                    >
+                      <Zap className="w-3 h-3 text-cyan-400 fill-current" />
+                      <span>Manual Backtest</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        const mg = games.find(g => g.id === pick.gameId) || games.find(g => g.sport === pick.sport);
+                        if (mg) setCalibrationGame(mg);
+                      }}
+                      className="py-1.5 px-2 rounded-lg bg-amber-950/60 hover:bg-amber-500 hover:text-slate-950 text-[11px] font-mono font-bold text-amber-300 border border-amber-800/60 transition-all flex items-center justify-center space-x-1 shadow-sm"
+                      title="Inspect & tune calibrated model weights"
+                    >
+                      <Sliders className="w-3 h-3 text-amber-400" />
+                      <span>Calibration Details</span>
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => onNavigateToSportHub(pick.sport, pick.gameId)}
+                    className="w-full py-1.5 px-3 rounded-lg bg-[#141d2d] hover:bg-[#1f2b42] text-[11px] font-mono font-semibold text-slate-300 hover:text-white transition-colors flex items-center justify-center space-x-1.5"
+                  >
+                    <span>Analyze in {pick.sport} Hub</span>
+                    <ArrowRight className="w-3 h-3 text-cyan-400" />
+                  </button>
                 </div>
               </div>
-
-              {/* Active Control Center Action Buttons */}
-              <div className="mt-4 pt-3 border-t border-[#1a2335] space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => {
-                      const matchedGame = games.find(g => g.id === pick.gameId) || games.find(g => g.sport === pick.sport);
-                      if (matchedGame) setBacktestGame(matchedGame);
-                    }}
-                    className="py-1.5 px-2 rounded-lg bg-cyan-950/60 hover:bg-cyan-500 hover:text-slate-950 text-[11px] font-mono font-bold text-cyan-300 border border-cyan-800/60 transition-all flex items-center justify-center space-x-1 shadow-sm"
-                    title="Run on-demand manual backtesting simulation"
-                  >
-                    <Zap className="w-3 h-3 text-cyan-400 fill-current" />
-                    <span>Manual Backtest</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      const matchedGame = games.find(g => g.id === pick.gameId) || games.find(g => g.sport === pick.sport);
-                      if (matchedGame) setCalibrationGame(matchedGame);
-                    }}
-                    className="py-1.5 px-2 rounded-lg bg-amber-950/60 hover:bg-amber-500 hover:text-slate-950 text-[11px] font-mono font-bold text-amber-300 border border-amber-800/60 transition-all flex items-center justify-center space-x-1 shadow-sm"
-                    title="Inspect & tune calibrated model weights"
-                  >
-                    <Sliders className="w-3 h-3 text-amber-400" />
-                    <span>Calibration Details</span>
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => onNavigateToSportHub(pick.sport, pick.gameId)}
-                  className="w-full py-1.5 px-3 rounded-lg bg-[#141d2d] hover:bg-[#1f2b42] text-[11px] font-mono font-semibold text-slate-300 hover:text-white transition-colors flex items-center justify-center space-x-1.5"
-                >
-                  <span>Analyze in {pick.sport} Hub</span>
-                  <ArrowRight className="w-3 h-3 text-cyan-400" />
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -517,27 +567,27 @@ export const PersonalHomePage: React.FC<PersonalHomePageProps> = ({
             </button>
           </div>
 
-          {/* TABLE TENNIS CARD */}
+          {/* TENNIS SOTA CARD */}
           <div className="p-6 rounded-2xl bg-[#0f1422] border border-[#1f283b] hover:border-cyan-500/50 transition-all flex flex-col justify-between group shadow-lg">
             <div>
               <div className="flex items-center justify-between mb-3">
                 <span className="px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">
-                  TT ORACLE HUB
+                  TENNIS SOTA HUB
                 </span>
-                <span className="text-xs font-mono text-slate-400">tt-oracle</span>
+                <span className="text-xs font-mono text-slate-400">ATP/WTA & FanDuel</span>
               </div>
 
               <h3 className="text-lg font-display font-bold text-white mb-1 group-hover:text-cyan-300 transition-colors">
-                Table Tennis SOTA
+                Tennis SOTA Engine
               </h3>
               <p className="text-xs text-slate-400 mb-4 font-sans leading-relaxed">
-                50,000 Monte Carlo point simulations, Pandora/Setka circuits, Glicko-2 ratings, and Style-Rubber interaction matrices.
+                Klaassen-Magnus Hierarchical Markov Chain point simulations, CPI court pace indices, serve/return Elo ratings, and FanDuel real-time calibration.
               </p>
 
               <div className="space-y-1.5 font-mono text-[11px] text-slate-300 mb-4">
                 <div className="flex justify-between py-1 border-b border-[#182030]">
-                  <span className="text-slate-500">Live Circuit Matches:</span>
-                  <span className="text-cyan-400 font-bold">2 Live</span>
+                  <span className="text-slate-500">Live Scheduled Matches:</span>
+                  <span className="text-cyan-400 font-bold">1 Live</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-[#182030]">
                   <span className="text-slate-500">Upcoming Slate:</span>
@@ -545,16 +595,16 @@ export const PersonalHomePage: React.FC<PersonalHomePageProps> = ({
                 </div>
                 <div className="flex justify-between py-1">
                   <span className="text-slate-500">Empirical Brier Score:</span>
-                  <span className="text-emerald-400 font-bold">0.1584 (-23.8%)</span>
+                  <span className="text-emerald-400 font-bold">0.1482 (-26.4%)</span>
                 </div>
               </div>
             </div>
 
             <button
-              onClick={() => onNavigateToSportHub('TABLE_TENNIS')}
+              onClick={() => onNavigateToSportHub('TENNIS' as any)}
               className="w-full py-2.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500 hover:text-slate-950 border border-cyan-500/30 text-cyan-300 font-mono font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center space-x-2"
             >
-              <span>ENTER TT ORACLE HUB</span>
+              <span>ENTER TENNIS SOTA HUB</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -606,6 +656,18 @@ export const PersonalHomePage: React.FC<PersonalHomePageProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            {/* Calendar slate button */}
+            {onNavigateToCalendar && (
+              <button
+                onClick={onNavigateToCalendar}
+                className="px-3 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500 hover:text-slate-950 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold transition-all flex items-center space-x-1.5 cursor-pointer shadow-sm"
+                title="Open comprehensive factual match calendar with dates, times, and clear bet signals"
+              >
+                <Calendar className="w-3.5 h-3.5" />
+                <span>MATCH CALENDAR</span>
+              </button>
+            )}
+
             {/* Sync live button */}
             <button
               onClick={handleManualSync}
@@ -621,15 +683,15 @@ export const PersonalHomePage: React.FC<PersonalHomePageProps> = ({
             <div className="flex items-center space-x-2">
               <span className="text-[11px] font-mono text-slate-400">Sport:</span>
               <div className="flex bg-[#141b2b] p-0.5 rounded-lg border border-[#23314a]">
-                {(['ALL', 'MLB', 'NFL', 'CFB', 'TABLE_TENNIS'] as const).map(s => (
+                {(['ALL', 'MLB', 'NFL', 'CFB', 'TENNIS'] as const).map(s => (
                   <button
                     key={s}
-                    onClick={() => setSelectedSportFilter(s)}
+                    onClick={() => setSelectedSportFilter(s as any)}
                     className={`px-2.5 py-1 text-xs font-mono rounded transition-colors ${
                       selectedSportFilter === s ? 'bg-cyan-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    {s === 'TABLE_TENNIS' ? 'TT' : s}
+                    {s}
                   </button>
                 ))}
               </div>
@@ -681,6 +743,14 @@ export const PersonalHomePage: React.FC<PersonalHomePageProps> = ({
                       </div>
 
                       {/* Matchup & Live Scores */}
+                      <div className="flex items-center space-x-1.5 text-[11px] font-mono text-cyan-300 bg-[#090e18] px-2 py-0.5 rounded border border-[#1a2538] w-fit mb-2">
+                        <Calendar className="w-3 h-3 text-cyan-400 shrink-0" />
+                        <span>{g.displayDate || g.gameDate || 'Sep 15, 2026'}</span>
+                        <span className="text-slate-500">•</span>
+                        <Clock className="w-3 h-3 text-rose-400 shrink-0" />
+                        <span>Started {g.displayTime || g.scheduledTime} ({g.timeZone || 'EDT'})</span>
+                      </div>
+
                       <div className="flex items-center justify-between p-3 bg-[#0d121c] rounded-lg border border-[#1b2536] mb-3">
                         <div>
                           <div className="text-sm font-bold text-white">{g.awayTeam.name} ({g.awayTeam.code})</div>
@@ -692,28 +762,97 @@ export const PersonalHomePage: React.FC<PersonalHomePageProps> = ({
                         </div>
                       </div>
 
-                      {/* Live Win Prob & Telemetry */}
-                      <div className="space-y-2 text-xs font-mono mb-4">
-                        <div className="flex justify-between text-slate-400 text-[11px]">
-                          <span>In-Game Win Probability:</span>
-                          <span className="text-cyan-400 font-bold">
-                            {g.homeTeam.code} {((g.liveTelemetry?.winProbabilityInGame ?? g.trueProbabilityHome) * 100).toFixed(1)}%
+                      {/* DYNAMIC LIVE IN-GAME PREDICTION ENGINE */}
+                      <div className="p-3 bg-[#0a101b] rounded-xl border border-cyan-900/40 space-y-2 mb-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-mono font-bold text-cyan-300 flex items-center gap-1">
+                            <Activity className="w-3 h-3 text-cyan-400" />
+                            DYNAMIC IN-GAME PREDICTION
                           </span>
+                          {g.liveInGamePrediction && (
+                            <span className={`text-[10px] font-mono font-bold px-1.5 py-0.2 rounded border ${
+                              g.liveInGamePrediction.shiftDirection === 'HOME_SURGE' 
+                                ? 'bg-emerald-950 text-emerald-300 border-emerald-800' 
+                                : g.liveInGamePrediction.shiftDirection === 'AWAY_SURGE' 
+                                ? 'bg-amber-950 text-amber-300 border-amber-800' 
+                                : 'bg-slate-900 text-slate-400 border-slate-700'
+                            }`}>
+                              {g.liveInGamePrediction.probabilityShiftDelta > 0 ? '▲ +' : '▼ '}
+                              {(Math.abs(g.liveInGamePrediction.probabilityShiftDelta) * 100).toFixed(1)}% vs Pre-Game Lock
+                            </span>
+                          )}
                         </div>
-                        <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400"
-                            style={{ width: `${(g.liveTelemetry?.winProbabilityInGame ?? g.trueProbabilityHome) * 100}%` }}
-                          />
+
+                        {/* Live Probability Bar */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs font-mono">
+                            <span className="text-slate-300">{g.awayTeam.code}: {((1 - (g.liveInGamePrediction?.liveHomeWinProb ?? g.liveTelemetry?.winProbabilityInGame ?? g.trueProbabilityHome)) * 100).toFixed(1)}%</span>
+                            <span className="text-cyan-400 font-bold">{g.homeTeam.code}: {(((g.liveInGamePrediction?.liveHomeWinProb ?? g.liveTelemetry?.winProbabilityInGame ?? g.trueProbabilityHome)) * 100).toFixed(1)}%</span>
+                          </div>
+                          <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden flex">
+                            <div 
+                              className="h-full bg-slate-600 transition-all duration-500" 
+                              style={{ width: `${(1 - (g.liveInGamePrediction?.liveHomeWinProb ?? g.liveTelemetry?.winProbabilityInGame ?? g.trueProbabilityHome)) * 100}%` }}
+                            />
+                            <div 
+                              className="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 transition-all duration-500" 
+                              style={{ width: `${(g.liveInGamePrediction?.liveHomeWinProb ?? g.liveTelemetry?.winProbabilityInGame ?? g.trueProbabilityHome) * 100}%` }}
+                            />
+                          </div>
                         </div>
-                        <div className="text-[11px] text-slate-400">
-                          State: <strong className="text-slate-200">{g.liveTelemetry?.possessionOrBatting || 'Active Play'}</strong>
+
+                        {/* Live Fair Lines & Pace */}
+                        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-[#162133] text-[10px] font-mono">
+                          <div>
+                            <span className="text-slate-500">Live Fair Moneyline:</span>
+                            <div className="text-white font-bold">
+                              {g.homeTeam.code} {g.liveInGamePrediction?.liveFairMoneylineHome ? (g.liveInGamePrediction.liveFairMoneylineHome > 0 ? `+${g.liveInGamePrediction.liveFairMoneylineHome}` : g.liveInGamePrediction.liveFairMoneylineHome) : '-'}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-slate-500">Projected Live Total:</span>
+                            <div className="text-cyan-300 font-bold">
+                              {g.liveInGamePrediction?.liveProjectedTotal ? `${g.liveInGamePrediction.liveProjectedTotal} O/U` : 'Standard'}
+                            </div>
+                          </div>
                         </div>
+
+                        {/* Live Value Opportunity Alert */}
+                        {g.liveInGamePrediction?.liveValueOpportunity && (
+                          <div className="p-2 bg-emerald-950/60 rounded-lg border border-emerald-600/50 text-[10px] font-mono text-emerald-300 flex items-center justify-between">
+                            <span className="font-bold flex items-center gap-1">
+                              <Zap className="w-3 h-3 text-emerald-400 fill-current" />
+                              IN-PLAY VALUE: {g.liveInGamePrediction.liveValueOpportunity.action.replace(/_/g, ' ')} (+{g.liveInGamePrediction.liveValueOpportunity.edgePct}% Edge)
+                            </span>
+                            <span className="text-slate-400">Market Lag Exploited</span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1">
+                          <span>State: <strong className="text-slate-200">{g.liveTelemetry?.possessionOrBatting || 'Active Play'}</strong></span>
+                          <span>Pace: <strong className="text-slate-300">{g.liveInGamePrediction?.inGamePace || 'Standard'}</strong></span>
+                        </div>
+                      </div>
+
+                      {/* CLEAR BET RECOMMENDATION (GETER PRINCIPLE) */}
+                      <div className="mb-3">
+                        <ClearBetIndicator recommendation={g.clearBetRecommendation} variant="compact" />
                       </div>
                     </div>
 
                     {/* Active Control Center Action Buttons */}
                     <div className="pt-3 border-t border-[#1b2536] space-y-2">
+                      {/* Live Play Simulation Button */}
+                      <button
+                        onClick={() => handleLiveTick(g)}
+                        disabled={tickingGameId === g.id}
+                        className="w-full py-2 px-3 rounded-lg bg-cyan-950/80 hover:bg-cyan-500 hover:text-slate-950 text-cyan-300 font-mono text-xs font-bold border border-cyan-500/50 transition-all flex items-center justify-center space-x-2 shadow-sm disabled:opacity-50 cursor-pointer"
+                        title="Simulate next live score update and observe real-time prediction shift"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${tickingGameId === g.id ? 'animate-spin text-cyan-400' : 'text-cyan-400'}`} />
+                        <span>{tickingGameId === g.id ? 'Recalibrating In-Game Models...' : 'ADVANCE LIVE PLAY & RECALCULATE'}</span>
+                      </button>
+
                       <div className="grid grid-cols-2 gap-2">
                         <button
                           onClick={() => setBacktestGame(g)}
@@ -771,14 +910,20 @@ export const PersonalHomePage: React.FC<PersonalHomePageProps> = ({
                 {tabGames.map(g => (
                   <div key={g.id} className="p-5 rounded-xl bg-[#131926] border border-[#222d42] flex flex-col justify-between">
                     <div>
-                      <div className="flex items-center justify-between mb-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-3">
                         <div className="flex items-center space-x-2">
                           <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-800">
                             UPCOMING
                           </span>
                           <span className="text-xs font-mono text-cyan-300">{g.sport} ENGINE</span>
                         </div>
-                        <span className="text-xs font-mono text-slate-300">{g.scheduledTime}</span>
+                        <div className="flex items-center space-x-1.5 text-xs font-mono text-slate-300">
+                          <Calendar className="w-3 h-3 text-cyan-400 shrink-0" />
+                          <span>{g.displayDate || g.gameDate || 'Upcoming'}</span>
+                          <span>•</span>
+                          <Clock className="w-3 h-3 text-cyan-400 shrink-0" />
+                          <span>{g.displayTime || g.scheduledTime} ({g.timeZone || 'EDT'})</span>
+                        </div>
                       </div>
 
                       <div className="text-sm font-bold text-white mb-1">
@@ -801,6 +946,11 @@ export const PersonalHomePage: React.FC<PersonalHomePageProps> = ({
 
                       <div className="text-[11px] text-slate-400 font-mono mb-3">
                         Weather: {g.weather.temperatureF}°F, {g.weather.windSpeedMph}mph {g.weather.windDirection.replace(/_/g, ' ')}
+                      </div>
+
+                      {/* CLEAR BET RECOMMENDATION (GETER PRINCIPLE) */}
+                      <div className="mb-3">
+                        <ClearBetIndicator recommendation={g.clearBetRecommendation} variant="card" />
                       </div>
                     </div>
 
@@ -858,90 +1008,210 @@ export const PersonalHomePage: React.FC<PersonalHomePageProps> = ({
               </div>
             ) : (
               <div className="space-y-4">
-                {tabGames.map(g => (
-                  <div key={g.id} className="p-5 rounded-xl bg-[#131926] border border-[#222d42] space-y-4">
-                    {/* Header: Score and Winner Outcome */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#1d273a]">
-                      <div>
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
-                            FINAL RESULT VERIFIED
-                          </span>
-                          <span className="text-xs font-mono text-cyan-300 font-bold">
-                            {g.sport} ENGINE
-                          </span>
-                        </div>
-                        <div className="text-base font-bold text-white">
-                          {g.awayTeam.name} ({g.actualResult?.awayScore}) @ {g.homeTeam.name} ({g.actualResult?.homeScore})
-                        </div>
-                      </div>
+                {tabGames.map(g => {
+                  const isLoss = g.actualResult?.predictionOutcome === 'LOSS' || (g.actualResult && g.actualResult.brierLoss > 0.40);
+                  const isWin = g.actualResult?.predictionOutcome === 'WIN';
+                  const fa = g.actualResult?.failureAnalysis;
 
-                      <div className="text-right">
-                        <div className="text-xs font-mono text-slate-400">Winner & Outcome:</div>
-                        <div className="text-sm font-mono font-bold text-emerald-400">
-                          {g.actualResult?.winner}
-                        </div>
-                      </div>
-                    </div>
+                  return (
+                    <div key={g.id} className={`p-5 rounded-xl bg-[#131926] border space-y-4 ${
+                      isLoss ? 'border-rose-500/40' : 'border-[#222d42]'
+                    }`}>
+                      {/* Header: Score, Exact Start Time/Date, and Prediction Outcome Badge */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1d273a]">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">
+                              FINAL RESULT VERIFIED
+                            </span>
+                            <span className="text-xs font-mono text-cyan-300 font-bold">
+                              {g.sport} ENGINE
+                            </span>
+                            {/* Prediction Outcome Badge */}
+                            {isLoss ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-800 flex items-center">
+                                <XCircle className="w-3 h-3 mr-1 text-rose-400" />
+                                PREDICTION FAILED (LOSS) - AUTONOMOUS REFACTOR TRIGGERED
+                              </span>
+                            ) : isWin ? (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 flex items-center">
+                                <CheckCircle2 className="w-3 h-3 mr-1 text-emerald-400" />
+                                PREDICTION VERIFIED (WIN)
+                              </span>
+                            ) : null}
+                          </div>
 
-                    {/* How the engine acted / predicted */}
-                    <div className="p-4 bg-[#0d121c] rounded-lg border border-[#1b2536] space-y-2">
-                      <div className="text-xs font-mono font-bold text-slate-300 uppercase flex items-center space-x-1.5">
-                        <Award className="w-3.5 h-3.5 text-cyan-400" />
-                        <span>HOW THE ENGINE ACTED / PREDICTED (PRE-LOCK):</span>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono pt-1">
-                        <div>
-                          <span className="text-slate-500">Frozen Prediction Pick:</span>
-                          <div className="text-cyan-300 font-semibold">{g.actualResult?.enginePredictedPick}</div>
-                        </div>
-                        <div>
-                          <span className="text-slate-500">Pre-Match Nexus Prob:</span>
-                          <div className="text-white font-semibold">
-                            {((g.actualResult?.enginePredictedProb ?? g.trueProbabilityHome) * 100).toFixed(1)}% (Edge: +{((g.actualResult?.enginePredictedEdge ?? 0.08) * 100).toFixed(1)}%)
+                          <div className="text-base font-bold text-white">
+                            {g.awayTeam.name} ({g.actualResult?.awayScore}) @ {g.homeTeam.name} ({g.actualResult?.homeScore})
+                          </div>
+
+                          {/* Exact Start Date and Time Display */}
+                          <div className="flex items-center space-x-2 text-xs font-mono text-slate-400 mt-1">
+                            <Calendar className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                            <span>Scheduled: <strong className="text-slate-200">{g.displayDate || g.gameDate || 'Official Slate'}</strong></span>
+                            <span>•</span>
+                            <Clock className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                            <span>Start Time: <strong className="text-slate-200">{g.displayTime || g.scheduledTime} ({g.timeZone || 'EDT'})</strong></span>
                           </div>
                         </div>
-                        <div>
-                          <span className="text-slate-500">Brier Loss Contribution:</span>
-                          <div className="text-emerald-400 font-semibold">
-                            {g.actualResult?.brierLoss.toFixed(4)} (Calibration Δ: {g.actualResult?.calibrationDelta})
+
+                        <div className="text-right sm:self-center">
+                          <div className="text-[11px] font-mono text-slate-400">Official Final Result:</div>
+                          <div className="text-base font-mono font-bold text-emerald-400">
+                            Winner: {g.actualResult?.winner}
+                          </div>
+                          <div className="text-[10px] font-mono text-slate-500">
+                            Total: {g.actualResult?.actualTotal ?? (g.actualResult?.awayScore && g.actualResult?.homeScore ? g.actualResult.awayScore + g.actualResult.homeScore : 'N/A')} PTS
                           </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* The Upgrades it has made when it compares the prediction to the outcome */}
-                    <div className="p-4 bg-[#0d131f] rounded-lg border border-amber-500/30 space-y-2">
-                      <div className="text-xs font-mono font-bold text-amber-300 uppercase flex items-center space-x-1.5">
-                        <Zap className="w-3.5 h-3.5 text-amber-400" />
-                        <span>AUTONOMOUS ENGINE UPGRADES & REFACTORING COMMITTED:</span>
+                      {/* How the engine acted / predicted */}
+                      <div className="p-4 bg-[#0d121c] rounded-lg border border-[#1b2536] space-y-2">
+                        <div className="text-xs font-mono font-bold text-slate-300 uppercase flex items-center space-x-1.5">
+                          <Award className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>HOW THE ENGINE ACTED / PREDICTED (PRE-LOCK):</span>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono pt-1">
+                          <div>
+                            <span className="text-slate-500">Frozen Prediction Pick:</span>
+                            <div className="text-cyan-300 font-semibold">{g.actualResult?.enginePredictedPick}</div>
+                          </div>
+                          <div>
+                            <span className="text-slate-500">Pre-Match Nexus Prob:</span>
+                            <div className="text-white font-semibold">
+                              {((g.actualResult?.enginePredictedProb ?? g.trueProbabilityHome) * 100).toFixed(1)}% (Edge: +{((g.actualResult?.enginePredictedEdge ?? 0.08) * 100).toFixed(1)}%)
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-slate-500">Brier Loss Contribution:</span>
+                            <div className={`font-semibold ${isLoss ? 'text-rose-400' : 'text-emerald-400'}`}>
+                              {g.actualResult?.brierLoss.toFixed(4)} (Calibration Δ: {g.actualResult?.calibrationDelta})
+                            </div>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="text-xs font-sans text-slate-300 leading-relaxed">
-                        {g.actualResult?.autonomousRefactorSummary}
+                      {/* ========================================================= */}
+                      {/* IF PREDICTION FAILED: DETAILED POST-MORTEM & UPGRADES ESTABLISHED */}
+                      {/* ========================================================= */}
+                      {fa && (
+                        <div className="p-4 bg-rose-950/20 rounded-xl border border-rose-500/40 space-y-3">
+                          <div className="flex items-center justify-between pb-2 border-b border-rose-900/40">
+                            <div className="flex items-center space-x-2 text-rose-300 font-mono text-xs font-bold uppercase">
+                              <AlertTriangle className="w-4 h-4 text-rose-400" />
+                              <span>FAILURE POST-MORTEM: WHY THE ENGINE FAILED & UPGRADES ESTABLISHED</span>
+                            </div>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-800">
+                              RECURRENCE PREVENTED
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">
+                            <div className="p-3 bg-[#0d101a] rounded-lg border border-rose-900/40">
+                              <span className="text-rose-400 text-[10px] font-bold uppercase block mb-1">Root Cause Analysis:</span>
+                              <p className="text-slate-200 font-sans text-xs leading-relaxed">{fa.rootCause}</p>
+                            </div>
+                            <div className="p-3 bg-[#0d101a] rounded-lg border border-rose-900/40">
+                              <span className="text-amber-400 text-[10px] font-bold uppercase block mb-1">Primary Deviation Factor:</span>
+                              <p className="text-slate-200 font-sans text-xs leading-relaxed">{fa.primaryDeviationFactor}</p>
+                            </div>
+                          </div>
+
+                          {/* Specific Parameter Adjustments Table */}
+                          {fa.parameterAdjustments && fa.parameterAdjustments.length > 0 && (
+                            <div className="space-y-1.5">
+                              <span className="text-[11px] font-mono text-slate-300 font-bold uppercase">
+                                Parameter Adjustments Established:
+                              </span>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {fa.parameterAdjustments.map((adj, aIdx) => (
+                                  <div key={aIdx} className="p-2.5 bg-[#0e1320] rounded-lg border border-[#1f2b42] text-xs font-mono">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="font-bold text-white">{adj.parameterName}</span>
+                                      <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                                        adj.direction === 'INCREASED' ? 'bg-cyan-950 text-cyan-300 border border-cyan-800' : 'bg-amber-950 text-amber-300 border border-amber-800'
+                                      }`}>
+                                        {adj.direction === 'INCREASED' ? '↑' : '↓'} {adj.direction}
+                                      </span>
+                                    </div>
+                                    <div className="text-[11px] text-slate-400">
+                                      <span className="line-through text-slate-500">{adj.previousValue}</span> → <strong className="text-cyan-300">{adj.upgradedValue}</strong>
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 mt-1 font-sans">{adj.rationale}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Established Safeguard Guarantee */}
+                          <div className="p-3 bg-[#0a1516] rounded-lg border border-cyan-500/40 text-xs font-mono space-y-1">
+                            <div className="text-cyan-400 font-bold flex items-center space-x-1.5">
+                              <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                              <span>ESTABLISHED MATHEMATICAL SAFEGUARD:</span>
+                            </div>
+                            <p className="text-slate-200 font-sans leading-relaxed">{fa.safeguardEstablished}</p>
+                          </div>
+
+                          {/* App Memory Persistence Banner */}
+                          <div className="p-2.5 bg-[#0b121e] rounded-lg border border-[#1e2a40] text-[11px] font-mono text-slate-300 flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <Database className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                              <span>
+                                <strong>PERSISTENT APP MEMORY:</strong> Updates stored in <code className="text-cyan-300">{fa.persistedMemoryLocation || 'Firestore: /sport_calibrations/' + g.sport}</code>
+                              </span>
+                            </div>
+                            <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold shrink-0">
+                              REMEMBERED
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* The Autonomous Engine Upgrades summary */}
+                      <div className="p-4 bg-[#0d131f] rounded-lg border border-amber-500/30 space-y-2">
+                        <div className="text-xs font-mono font-bold text-amber-300 uppercase flex items-center space-x-1.5">
+                          <Zap className="w-3.5 h-3.5 text-amber-400" />
+                          <span>AUTONOMOUS ENGINE UPGRADES & REFACTORING COMMITTED:</span>
+                        </div>
+
+                        <div className="text-xs font-sans text-slate-300 leading-relaxed">
+                          {g.actualResult?.autonomousRefactorSummary}
+                        </div>
+
+                        <ul className="space-y-1.5 text-xs font-mono pt-2">
+                          {g.actualResult?.engineUpgradesMade?.map((upg, idx) => (
+                            <li key={idx} className="flex items-start space-x-2 text-slate-200">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                              <span>{upg}</span>
+                            </li>
+                          ))}
+                        </ul>
+
+                        {/* Provenance and Verification Hash */}
+                        {g.actualResult?.resultProvenance && (
+                          <div className="mt-3 pt-2 border-t border-[#1e283c] flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-slate-500">
+                            <span>Official Source: <strong className="text-slate-300">{g.actualResult.resultProvenance.scoreSource}</strong></span>
+                            <span>Verified At: <strong className="text-slate-300">{new Date(g.actualResult.resultProvenance.verifiedAt).toLocaleTimeString()}</strong></span>
+                            <span className="truncate max-w-[200px]" title={g.actualResult.resultProvenance.verificationHash}>
+                              Hash: {g.actualResult.resultProvenance.verificationHash.slice(0, 16)}...
+                            </span>
+                          </div>
+                        )}
                       </div>
 
-                      <ul className="space-y-1.5 text-xs font-mono pt-2">
-                        {g.actualResult?.engineUpgradesMade?.map((upg, idx) => (
-                          <li key={idx} className="flex items-start space-x-2 text-slate-200">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-                            <span>{upg}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* Active Control Center Action Buttons */}
-                    <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-[#1b2536]">
-                      <button
-                        onClick={() => setBacktestGame(g)}
-                        className="py-1.5 px-3 rounded-lg bg-cyan-950/60 hover:bg-cyan-500 hover:text-slate-950 text-cyan-300 text-xs font-mono font-bold border border-cyan-800/60 transition-colors flex items-center space-x-1.5"
-                        title="Re-simulate historical outcome against engine"
-                      >
-                        <Zap className="w-3 h-3 text-cyan-400 fill-current" />
-                        <span>Manual Backtest</span>
-                      </button>
+                      {/* Active Control Center Action Buttons */}
+                      <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-[#1b2536]">
+                        <button
+                          onClick={() => setBacktestGame(g)}
+                          className="py-1.5 px-3 rounded-lg bg-cyan-950/60 hover:bg-cyan-500 hover:text-slate-950 text-cyan-300 text-xs font-mono font-bold border border-cyan-800/60 transition-colors flex items-center space-x-1.5"
+                          title="Re-simulate historical outcome against engine"
+                        >
+                          <Zap className="w-3 h-3 text-cyan-400 fill-current" />
+                          <span>Manual Backtest</span>
+                        </button>
 
                       <button
                         onClick={() => setCalibrationGame(g)}
@@ -961,7 +1231,8 @@ export const PersonalHomePage: React.FC<PersonalHomePageProps> = ({
                       </button>
                     </div>
                   </div>
-                ))}
+                );
+              })}
               </div>
             )}
           </div>

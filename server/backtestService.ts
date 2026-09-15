@@ -104,6 +104,35 @@ export const ENGINE_MODELS: BacktestEngineModel[] = [
     description: 'Success rate differential with non-garbage-time pace multipliers.',
     repo: 'College-football-pred / engine_zero.py',
   },
+  // Tennis Models (tennis-oracle / Markov Chain & CPI Surface Decoupling)
+  {
+    id: 'TENNIS_MARKOV_MATCH',
+    name: 'Hierarchical Point-to-Match Markov Chain Simulator',
+    sport: 'TENNIS',
+    description: 'Exact closed-form Markov chain modeling point -> game -> set -> match probabilities with deuce and tiebreak absorbing states.',
+    repo: 'tennis-oracle / markov_engine.ts',
+  },
+  {
+    id: 'TENNIS_CPI_SURFACE_DECOUPLING',
+    name: 'Surface CPI & Altitude Ball Speed Decoupler',
+    sport: 'TENNIS',
+    description: 'Quantifies Court Pace Index (1-50+), sea level vs thin mountain air, and temperature-dependent bounce speed multipliers.',
+    repo: 'tennis-oracle / surface_matrix.ts',
+  },
+  {
+    id: 'TENNIS_SERVE_RETURN_MATRIX',
+    name: 'Serve Hold vs Return Break Bayesian Differential Engine',
+    sport: 'TENNIS',
+    description: 'Models 1st/2nd serve win % against opponent 1st/2nd return win % to calculate true hold probabilities on both wings.',
+    repo: 'tennis-oracle / player_metrics.ts',
+  },
+  {
+    id: 'TENNIS_DYNAMIC_FATIGUE_ELO',
+    name: 'Surface-Specific Glicko-2 Elo & Best-of-Sets Fatigue Index',
+    sport: 'TENNIS',
+    description: 'Tracks surface-split Elo (Clay, Grass, Hard) with 3-set vs 5-set Grand Slam endurance decay and recovery curves.',
+    repo: 'tennis-oracle / elo_optimizer.ts',
+  },
   // Table Tennis Models (tt-oracle)
   {
     id: 'TT_50K_MONTE_CARLO',
@@ -176,20 +205,24 @@ function generateHistoricalRecords(): HistoricalBacktestRecord[] {
       { away: 'TENN', home: 'FLA', venue: 'Ben Hill Griffin Stadium' },
       { away: 'UTAH', home: 'COLO', venue: 'Folsom Field' },
     ],
+    TENNIS: [
+      { away: 'Carlos Alcaraz', home: 'Jannik Sinner', venue: 'Arthur Ashe Stadium (Flushing Meadows)' },
+      { away: 'Daniil Medvedev', home: 'Novak Djokovic', venue: 'Rod Laver Arena (Melbourne Park)' },
+      { away: 'Alexander Zverev', home: 'Carlos Alcaraz', venue: 'Court Philippe-Chatrier (Roland Garros)' },
+      { away: 'Taylor Fritz', home: 'Jannik Sinner', venue: 'Centre Court (Wimbledon)' },
+      { away: 'Iga Swiatek', home: 'Aryna Sabalenka', venue: 'Indian Wells Tennis Garden' },
+      { away: 'Coco Gauff', home: 'Aryna Sabalenka', venue: 'Hard Rock Stadium (Miami Open)' },
+      { away: 'Stefanos Tsitsipas', home: 'Alexander Zverev', venue: 'Monte-Carlo Country Club' },
+      { away: 'Holger Rune', home: 'Daniil Medvedev', venue: 'Foro Italico (Rome Masters)' },
+    ],
     TABLE_TENNIS: [
-      { away: 'A. Tkachenko', home: 'M. Pylypchuk', venue: 'Pandora / Setka Cup Arena' },
-      { away: 'J. David', home: 'R. Cernohorsky', venue: 'Czech Liga Pro Hall' },
-      { away: 'P. Gireth', home: 'V. Vakulenko', venue: 'TT Elite Series Bratislava' },
       { away: 'Truls Möregårdh', home: 'Hugo Calderano', venue: 'WTT Grand Smash Arena' },
       { away: 'Dang Qiu', home: 'Dimitrij Ovtcharov', venue: 'German Bundesliga Dome' },
-      { away: 'O. Yeremenko', home: 'M. Pylypchuk', venue: 'Pandora / Setka Cup Arena' },
-      { away: 'Joo Sae-hyuk', home: 'Truls Möregårdh', venue: 'WTT Masters Showcase' },
-      { away: 'V. Vakulenko', home: 'A. Tkachenko', venue: 'Pandora / Setka Cup Arena' },
     ],
   };
 
   // Seed repeatable dataset with dates spanning 2025-09-01 to 2026-09-12
-  const sports: SportType[] = ['MLB', 'NFL', 'CFB', 'TABLE_TENNIS'];
+  const sports: SportType[] = ['MLB', 'NFL', 'CFB', 'TENNIS'];
   let idCounter = 1000;
 
   // Let's generate ~320 detailed empirical events across 52 weeks
@@ -204,9 +237,11 @@ function generateHistoricalRecords(): HistoricalBacktestRecord[] {
     for (const sport of sports) {
       const sportModels = ENGINE_MODELS.filter(m => m.sport === sport);
       const matchups = sampleMatchups[sport];
+      if (!sportModels.length || !matchups?.length) continue;
       const matchIndex = (d + (sport === 'MLB' ? 0 : sport === 'NFL' ? 3 : 7)) % matchups.length;
       const matchup = matchups[matchIndex];
       const model = sportModels[(d + idCounter) % sportModels.length];
+      if (!model || !matchup) continue;
 
       idCounter++;
 
@@ -302,15 +337,15 @@ function generateHistoricalRecords(): HistoricalBacktestRecord[] {
           consensusImpliedProb = 0.524;
           nexusPredictedProb = 0.595;
         }
-      } else if (sport === 'TABLE_TENNIS') {
-        if (model.id === 'TT_50K_MONTE_CARLO') {
-          marketType = 'TOTAL_POINTS_OU';
-          marketTarget = 'Over 74.5 Total Points';
-          consensusLine = '74.5';
+      } else if (sport === 'TENNIS' || sport === 'TABLE_TENNIS') {
+        if (model.id.includes('MARKOV') || model.id === 'TT_50K_MONTE_CARLO') {
+          marketType = 'TOTAL_GAMES_OU';
+          marketTarget = 'Over 22.5 Total Games';
+          consensusLine = '22.5';
           consensusOdds = -110;
           consensusImpliedProb = 0.524;
-          nexusPredictedProb = 0.638;
-        } else if (model.id === 'TT_STYLE_RUBBER_MATRIX') {
+          nexusPredictedProb = 0.618;
+        } else if (model.id.includes('SURFACE') || model.id === 'TT_STYLE_RUBBER_MATRIX') {
           marketType = 'SET_HANDICAP';
           marketTarget = `${matchup.home} -1.5 Sets`;
           consensusLine = '-1.5';

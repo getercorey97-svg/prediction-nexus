@@ -16,6 +16,7 @@ import {
 import { Game, SportType, CalibrationMetrics } from '../types';
 import { GameBacktestModal } from './GameBacktestModal';
 import { GameCalibrationModal } from './GameCalibrationModal';
+import { ClearBetIndicator } from './ClearBetIndicator';
 
 interface MasterDashboardProps {
   games: Game[];
@@ -201,7 +202,12 @@ export const MasterDashboard: React.FC<MasterDashboardProps> = ({
                     </td>
 
                     <td className="py-3 pr-2 text-slate-200 font-medium">
-                      {target.marketName}
+                      <div>{target.marketName}</div>
+                      {game.clearBetRecommendation && (
+                        <div className="mt-1">
+                          <ClearBetIndicator recommendation={game.clearBetRecommendation} variant="badge" />
+                        </div>
+                      )}
                     </td>
 
                     <td className="py-3 pr-2 text-slate-400">
@@ -375,41 +381,41 @@ export const MasterDashboard: React.FC<MasterDashboardProps> = ({
           </button>
         </div>
 
-        {/* Table Tennis SOTA Engine */}
+        {/* Tennis SOTA Engine */}
         <div className="p-5 rounded-xl bg-[#0f1422] border border-[#1e273a] flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-950 text-cyan-400 border border-cyan-800">
-                TT SOTA ORACLE
+                TENNIS SOTA ENGINE
               </span>
               <span className="text-[10px] font-mono text-slate-400">
-                repo: tt-oracle
+                ATP/WTA FanDuel
               </span>
             </div>
             <h4 className="font-display font-bold text-base text-white uppercase mb-1">
-              Table Tennis SOTA Oracle
+              Tennis SOTA Engine
             </h4>
             <p className="text-xs text-slate-400 font-sans mb-3">
-              50k Monte Carlo point simulations, Glicko-2 ratings, style-rubber matrix, and Pandora circuit models.
+              Klaassen-Magnus Hierarchical Markov Chain point simulations, CPI court pace indices, serve/return Elo ratings, and FanDuel real-time calibration.
             </p>
             <div className="space-y-1.5 text-xs font-mono text-slate-300 mb-4">
               <div className="flex justify-between">
                 <span className="text-slate-500">Historical Brier:</span>
-                <span className="text-emerald-400 font-bold">0.1584</span>
+                <span className="text-emerald-400 font-bold">0.1482</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Key Variable:</span>
-                <span className="text-slate-300">Glicko-2 + Style Matrix</span>
+                <span className="text-slate-300">Markov Hold/Break + CPI</span>
               </div>
             </div>
           </div>
 
           <button
-            onClick={() => onNavigateToSport('TABLE_TENNIS')}
+            onClick={() => onNavigateToSport('TENNIS' as any)}
             className="w-full py-2.5 rounded-lg bg-[#161e30] hover:bg-cyan-500 hover:text-slate-950 border border-[#25334e] text-xs font-mono font-semibold text-cyan-300 transition-all flex items-center justify-center space-x-1.5"
           >
             <Trophy className="w-3.5 h-3.5" />
-            <span>LAUNCH TT CONTROLS</span>
+            <span>LAUNCH TENNIS CONTROLS</span>
           </button>
         </div>
       </div>

@@ -23,7 +23,12 @@ import {
   Play,
   Terminal,
   FileCode,
-  Flame
+  Flame,
+  Calendar,
+  Clock,
+  Database,
+  AlertTriangle,
+  XCircle
 } from 'lucide-react';
 import { 
   Game, 
@@ -331,8 +336,18 @@ export const SportDashboard: React.FC<SportDashboardProps> = ({
           <div className="p-6 rounded-2xl bg-[#111726] border border-[#1f2a3f] shadow-lg">
             <div className="flex flex-col md:flex-row md:items-center justify-between pb-4 mb-4 border-b border-[#1b2538] gap-4">
               <div>
-                <div className="text-[11px] font-mono text-cyan-400 uppercase tracking-wider mb-1">
-                  VENUE & TELEMETRY PROFILE
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <span className="text-[11px] font-mono text-cyan-400 uppercase tracking-wider font-bold">
+                    VENUE & TELEMETRY PROFILE
+                  </span>
+                  <span className="text-slate-600">•</span>
+                  <div className="flex items-center space-x-1 text-xs font-mono text-cyan-300">
+                    <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>{selectedGame.displayDate || selectedGame.gameDate || 'Official Slate'}</span>
+                    <span>•</span>
+                    <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>{selectedGame.displayTime || selectedGame.scheduledTime} ({selectedGame.timeZone || 'EDT'})</span>
+                  </div>
                 </div>
                 <h2 className="text-xl font-display font-bold text-white uppercase">
                   {selectedGame.awayTeam.name} <span className="text-slate-500">vs</span> {selectedGame.homeTeam.name}
@@ -408,6 +423,177 @@ export const SportDashboard: React.FC<SportDashboardProps> = ({
               </div>
             </div>
           </div>
+
+          {/* VERIFIED FINAL OUTCOME & AUTONOMOUS ENGINE UPGRADES SECTION */}
+          {selectedGame.actualResult && (
+            <div className={`p-6 rounded-2xl bg-[#0e1422] border space-y-4 shadow-xl ${
+              selectedGame.actualResult.predictionOutcome === 'LOSS' ? 'border-rose-500/50' : 'border-emerald-500/50'
+            }`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#1c263c]">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-2.5 py-1 rounded text-xs font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 flex items-center">
+                    <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-400" />
+                    OFFICIAL FINAL MATCH RESULT VERIFIED
+                  </span>
+                  {selectedGame.actualResult.predictionOutcome === 'LOSS' ? (
+                    <span className="px-2.5 py-1 rounded text-xs font-mono font-bold bg-rose-950 text-rose-300 border border-rose-800 flex items-center">
+                      <XCircle className="w-3.5 h-3.5 mr-1 text-rose-400" />
+                      PREDICTION FAILED (LOSS) - AUTONOMOUS REFACTOR EXECUTED
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-1 rounded text-xs font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 flex items-center">
+                      <CheckCircle2 className="w-3.5 h-3.5 mr-1 text-emerald-400" />
+                      PREDICTION VERIFIED (WIN)
+                    </span>
+                  )}
+                </div>
+
+                <div className="text-right font-mono">
+                  <span className="text-xs text-slate-400">Official Outcome: </span>
+                  <span className="text-base font-bold text-white">
+                    {selectedGame.awayTeam.name} {selectedGame.actualResult.awayScore} - {selectedGame.actualResult.homeScore} {selectedGame.homeTeam.name}
+                  </span>
+                  <span className="ml-2 text-xs font-bold text-emerald-400">
+                    ({selectedGame.actualResult.winner} WON)
+                  </span>
+                </div>
+              </div>
+
+              {/* Pre-Lock vs Actual Comparison */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-[#090e18] rounded-xl border border-[#1a253a] text-xs font-mono">
+                <div>
+                  <span className="text-slate-500 text-[10px] uppercase">Engine Prediction (Pre-Lock):</span>
+                  <div className="text-cyan-300 font-bold mt-0.5">{selectedGame.actualResult.enginePredictedPick}</div>
+                  <div className="text-slate-400 text-[11px]">Calibrated Prob: {((selectedGame.actualResult.enginePredictedProb ?? selectedGame.trueProbabilityHome) * 100).toFixed(1)}%</div>
+                </div>
+                <div>
+                  <span className="text-slate-500 text-[10px] uppercase">Verified Final Score:</span>
+                  <div className="text-white font-bold mt-0.5">
+                    {selectedGame.actualResult.awayScore} - {selectedGame.actualResult.homeScore} ({selectedGame.actualResult.actualTotal ?? (selectedGame.actualResult.awayScore + selectedGame.actualResult.homeScore)} Total)
+                  </div>
+                  <div className="text-emerald-400 text-[11px]">Winner: {selectedGame.actualResult.winner}</div>
+                </div>
+                <div>
+                  <span className="text-slate-500 text-[10px] uppercase">Empirical Brier Loss:</span>
+                  <div className={`font-bold mt-0.5 ${selectedGame.actualResult.predictionOutcome === 'LOSS' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                    {selectedGame.actualResult.brierLoss.toFixed(4)}
+                  </div>
+                  <div className="text-slate-400 text-[11px]">Calibration Δ: {selectedGame.actualResult.calibrationDelta}</div>
+                </div>
+              </div>
+
+              {/* Failure Post-Mortem & Upgrades Established */}
+              {selectedGame.actualResult.failureAnalysis && (
+                <div className="p-4 bg-rose-950/20 rounded-xl border border-rose-500/40 space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-rose-900/40">
+                    <div className="flex items-center space-x-2 text-rose-300 font-mono text-xs font-bold uppercase">
+                      <AlertTriangle className="w-4 h-4 text-rose-400" />
+                      <span>WHY IT FAILED & WHAT UPGRADES HAVE BEEN ESTABLISHED</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-800">
+                      RECURRENCE SAFEGUARD ACTIVE
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">
+                    <div className="p-3 bg-[#0a0d16] rounded-lg border border-rose-900/40">
+                      <span className="text-rose-400 text-[10px] font-bold uppercase block mb-1">Root Cause of Failure:</span>
+                      <p className="text-slate-200 font-sans text-xs leading-relaxed">
+                        {selectedGame.actualResult.failureAnalysis.rootCause}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-[#0a0d16] rounded-lg border border-rose-900/40">
+                      <span className="text-amber-400 text-[10px] font-bold uppercase block mb-1">Primary Deviation Factor:</span>
+                      <p className="text-slate-200 font-sans text-xs leading-relaxed">
+                        {selectedGame.actualResult.failureAnalysis.primaryDeviationFactor}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Parameter Adjustments Table */}
+                  {selectedGame.actualResult.failureAnalysis.parameterAdjustments && selectedGame.actualResult.failureAnalysis.parameterAdjustments.length > 0 && (
+                    <div className="space-y-1.5">
+                      <span className="text-[11px] font-mono text-slate-300 font-bold uppercase">
+                        Parameter Refactoring Established:
+                      </span>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {selectedGame.actualResult.failureAnalysis.parameterAdjustments.map((adj, aIdx) => (
+                          <div key={aIdx} className="p-2.5 bg-[#0b101c] rounded-lg border border-[#1e2a42] text-xs font-mono">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-bold text-white">{adj.parameterName}</span>
+                              <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                                adj.direction === 'INCREASED' ? 'bg-cyan-950 text-cyan-300 border border-cyan-800' : 'bg-amber-950 text-amber-300 border border-amber-800'
+                              }`}>
+                                {adj.direction === 'INCREASED' ? '↑' : '↓'} {adj.direction}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-slate-400">
+                              <span className="line-through text-slate-500">{adj.previousValue}</span> → <strong className="text-cyan-300">{adj.upgradedValue}</strong>
+                            </div>
+                            <div className="text-[10px] text-slate-400 mt-1 font-sans">{adj.rationale}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Established Safeguard Guarantee */}
+                  <div className="p-3 bg-[#081318] rounded-lg border border-cyan-500/40 text-xs font-mono space-y-1">
+                    <div className="text-cyan-400 font-bold flex items-center space-x-1.5">
+                      <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                      <span>MATHEMATICAL INVARIANT & SAFEGUARD ESTABLISHED:</span>
+                    </div>
+                    <p className="text-slate-200 font-sans leading-relaxed">
+                      {selectedGame.actualResult.failureAnalysis.safeguardEstablished}
+                    </p>
+                  </div>
+
+                  {/* App Memory Persistence Banner */}
+                  <div className="p-2.5 bg-[#0b121e] rounded-lg border border-[#1e2a40] text-[11px] font-mono text-slate-300 flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <Database className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                      <span>
+                        <strong>PERSISTENT APP MEMORY:</strong> Recalibration stored in <code className="text-cyan-300">{selectedGame.actualResult.failureAnalysis.persistedMemoryLocation || 'Firestore: /sport_calibrations/' + selectedGame.sport}</code> to prevent recurrence.
+                      </span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 font-bold shrink-0">
+                      REMEMBERED IN CLOUD
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Upgrades Made List */}
+              <div className="p-4 bg-[#0d131f] rounded-xl border border-amber-500/30 space-y-2">
+                <div className="text-xs font-mono font-bold text-amber-300 uppercase flex items-center space-x-1.5">
+                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                  <span>AUTONOMOUS ENGINE UPGRADES ESTABLISHED:</span>
+                </div>
+                <p className="text-xs text-slate-300 font-sans leading-relaxed">
+                  {selectedGame.actualResult.autonomousRefactorSummary}
+                </p>
+                <ul className="space-y-1.5 text-xs font-mono pt-2">
+                  {selectedGame.actualResult.engineUpgradesMade?.map((upg, idx) => (
+                    <li key={idx} className="flex items-start space-x-2 text-slate-200">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                      <span>{upg}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Provenance and Verification Hash */}
+                {selectedGame.actualResult.resultProvenance && (
+                  <div className="mt-3 pt-2 border-t border-[#1e283c] flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-slate-500">
+                    <span>Official Source: <strong className="text-slate-300">{selectedGame.actualResult.resultProvenance.scoreSource}</strong></span>
+                    <span>Verified At: <strong className="text-slate-300">{new Date(selectedGame.actualResult.resultProvenance.verifiedAt).toLocaleTimeString()}</strong></span>
+                    <span className="truncate max-w-[220px]" title={selectedGame.actualResult.resultProvenance.verificationHash}>
+                      Verification Hash: {selectedGame.actualResult.resultProvenance.verificationHash}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Calibrated Weights Sliders */}
           <div className="p-6 rounded-2xl bg-[#0f1422] border border-[#1f283b] space-y-4">

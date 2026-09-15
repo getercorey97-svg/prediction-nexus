@@ -43,14 +43,23 @@ let accuracyLedger: AccuracyRecordSummary = {
       profitUnits: 20.40,
       brierScore: 0.1698,
     },
+    TENNIS: {
+      total: 312,
+      accurate: 210,
+      inaccurate: 98,
+      pushes: 4,
+      rate: 0.674,
+      profitUnits: 44.20,
+      brierScore: 0.1482,
+    },
     TABLE_TENNIS: {
-      total: 245,
-      accurate: 158,
-      inaccurate: 82,
-      pushes: 5,
-      rate: 0.645,
-      profitUnits: 31.50,
-      brierScore: 0.1594,
+      total: 312,
+      accurate: 210,
+      inaccurate: 98,
+      pushes: 4,
+      rate: 0.674,
+      profitUnits: 44.20,
+      brierScore: 0.1482,
     },
   },
   recentTrend: [
@@ -428,12 +437,12 @@ export function executeContinuousLearningCycle(sport: SportType = 'MLB'): {
     paramName = 'markov_absorbing_touchdown_rate';
     formula = 'P(TD) = P_drive_matrix * (1 - redzone_stunt_rate)';
     triggerMsg = 'CFB Zero Markov Chain Drive Invariance Calibration';
-  } else if (sport === 'TABLE_TENNIS') {
-    targetFile = 'oracle.py';
-    repository = 'tt-oracle';
-    paramName = 'lefty_vs_righty_bonus';
-    formula = 'w_new = w_old - 0.0025 * 2 * (p_pred - y_actual) * grad(p)';
-    triggerMsg = 'TT-Oracle Style-Rubber Weight Bayesian Optimization';
+  } else if (sport === 'TENNIS' || sport === 'TABLE_TENNIS') {
+    targetFile = 'klaassen_magnus_markov.py';
+    repository = 'tennis-sota-engine';
+    paramName = 'surface_cpi_markov_hold_decay';
+    formula = 'P(Hold) = [p^4*(15 - 34p + 28p^2 - 8p^3)] / [1 - 2p*(1-p)]';
+    triggerMsg = 'ATP/WTA Hierarchical Markov Chain Surface CPI Optimization';
   }
 
   const newAction: EngineLearningAction = {

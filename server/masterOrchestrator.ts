@@ -109,7 +109,7 @@ export function stopMasterOrchestrator(): void {
  */
 export async function triggerUnifiedRecalibrationAllSports(): Promise<UnifiedRecalibrationResponse> {
   const startTime = Date.now();
-  const sports: SportType[] = ['MLB', 'NFL', 'CFB', 'TABLE_TENNIS'];
+  const sports: SportType[] = ['MLB', 'NFL', 'CFB', 'TENNIS'];
   const terminalLogs: string[] = [
     `[MASTER RECALIBRATION DAEMON] Launching unified multi-sport walk-forward optimization...`,
     `[PARALLEL EXECUTION] Targeting 4 algorithmic engines: ${sports.join(', ')}...`,
@@ -128,7 +128,7 @@ export async function triggerUnifiedRecalibrationAllSports(): Promise<UnifiedRec
       let param = 'weather_drag_exponent';
       if (sport === 'NFL') param = 'dixon_coles_correlation_rho';
       if (sport === 'CFB') param = 'markov_absorbing_touchdown_rate';
-      if (sport === 'TABLE_TENNIS') param = 'style_rubber_spin_penalty';
+      if (sport === 'TENNIS' || sport === 'TABLE_TENNIS') param = 'surface_cpi_markov_hold_decay';
 
       // Persist to Cloud Firestore
       try {

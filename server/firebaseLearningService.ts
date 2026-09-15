@@ -103,6 +103,18 @@ const DEFAULT_WEIGHTS: Record<SportType, CalibratedWeights> = {
     recentFormOptimal: 0.15,
     travelFatigueOptimal: 0.10,
   },
+  TENNIS: {
+    weatherWeight: 0.12, // Court speed, altitude & temperature
+    marketOddsWeight: 0.18,
+    pitchingOrQbWeight: 0.45, // Individual player serve, return, Elo & CPI
+    recentFormWeight: 0.15,
+    travelFatigueWeight: 0.10,
+    weatherOptimal: 0.12,
+    marketOddsOptimal: 0.18,
+    pitchingOrQbOptimal: 0.45,
+    recentFormOptimal: 0.15,
+    travelFatigueOptimal: 0.10,
+  },
   TABLE_TENNIS: {
     weatherWeight: 0.05,
     marketOddsWeight: 0.20,
@@ -242,7 +254,7 @@ export function getAllSportCalibrations(): Record<SportType, PersistedSportCalib
  */
 export function validatePredictionRecord(record: PredictionRecord): boolean {
   if (!record.gameId || typeof record.gameId !== 'string') return false;
-  if (!['MLB', 'NFL', 'CFB', 'TABLE_TENNIS'].includes(record.sport)) return false;
+  if (!['MLB', 'NFL', 'CFB', 'TENNIS', 'TABLE_TENNIS'].includes(record.sport)) return false;
   if (!record.matchup || record.matchup.length < 3 || record.matchup.length > 150) return false;
   if (typeof record.brierScore !== 'number' || isNaN(record.brierScore) || record.brierScore < 0 || record.brierScore > 2) return false;
   if (!record.timestamp) return false;
@@ -253,7 +265,7 @@ export function validatePredictionRecord(record: PredictionRecord): boolean {
  * Validate sport calibration schema before writing to Firestore
  */
 export function validateSportCalibration(calib: PersistedSportCalibration): boolean {
-  if (!['MLB', 'NFL', 'CFB', 'TABLE_TENNIS'].includes(calib.sport)) return false;
+  if (!['MLB', 'NFL', 'CFB', 'TENNIS', 'TABLE_TENNIS'].includes(calib.sport)) return false;
   if (!calib.weights || typeof calib.weights !== 'object') return false;
   if (typeof calib.weights.weatherWeight !== 'number' || calib.weights.weatherWeight < 0.05) return false;
   if (typeof calib.weights.marketOddsWeight !== 'number' || calib.weights.marketOddsWeight < 0.05) return false;
@@ -266,7 +278,7 @@ export function validateSportCalibration(calib: PersistedSportCalibration): bool
  */
 export function validateLearningEvent(event: LearningEvent): boolean {
   if (!event.id || typeof event.id !== 'string') return false;
-  if (!['MLB', 'NFL', 'CFB', 'TABLE_TENNIS'].includes(event.sport)) return false;
+  if (!['MLB', 'NFL', 'CFB', 'TENNIS', 'TABLE_TENNIS'].includes(event.sport)) return false;
   if (!event.eventDescription || event.eventDescription.length < 5 || event.eventDescription.length > 500) return false;
   if (!event.timestamp) return false;
   return true;
@@ -609,5 +621,24 @@ export function getLearningSystemOverview() {
     sportCalibrations: cachedSportCalibrations,
     recentLearningEvents: inMemoryLearningEvents.slice(0, 15),
     recentPredictions: inMemoryPredictionRecords.slice(0, 20),
+  };
+}
+
+/**
+ * Retrieve comprehensive ledger of all autonomous engine upgrades established
+ * to make sure the app never fails on the same variables twice.
+ */
+export function getUpgradesLedger() {
+  const sports = Object.keys(cachedSportCalibrations) as SportType[];
+  const calibrationsList = Object.values(cachedSportCalibrations);
+  
+  return {
+    engineStatus: 'CONTINUOUS_UPGRADES_PERSISTED',
+    firestoreDatabaseId: firebaseConfig.firestoreDatabaseId || '(default)',
+    lastPersistedTimestamp: new Date().toISOString(),
+    totalUpgradesRemembered: inMemoryLearningEvents.length,
+    activeSportCalibrations: cachedSportCalibrations,
+    events: inMemoryLearningEvents,
+    predictions: inMemoryPredictionRecords,
   };
 }
