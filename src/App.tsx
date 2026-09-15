@@ -202,7 +202,39 @@ export default function App() {
 
   useEffect(() => {
     loadInitialData();
+
+    // Auto-poll live game telemetry every 30s so scores & innings stay up to date
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/games');
+        if (res.ok) {
+          const freshGames = await res.json();
+          if (Array.isArray(freshGames) && freshGames.length > 0) {
+            setGames(freshGames);
+          }
+        }
+      } catch (err) {
+        // Silent poll fail
+      }
+    }, 30000);
+
+    return () => clearInterval(pollInterval);
   }, []);
+
+  const handleSyncLiveGames = async () => {
+    try {
+      const res = await fetch('/api/games/sync-live', { method: 'POST' });
+      const data = await res.json();
+      if (data.games && Array.isArray(data.games)) {
+        setGames(data.games);
+        if (!selectedGameId && data.games.length > 0) {
+          setSelectedGameId(data.games[0].id);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to sync live games:', err);
+    }
+  };
 
   // Update Game Weights (from interactive sliders)
   const handleUpdateWeights = async (gameId: string, updatedWeights: CalibratedWeights) => {
@@ -390,6 +422,7 @@ export default function App() {
               onGameUpdated={(updatedGame) => {
                 setGames(prev => prev.map(g => g.id === updatedGame.id ? updatedGame : g));
               }}
+              onRefreshLiveGames={handleSyncLiveGames}
             />
           )}
 

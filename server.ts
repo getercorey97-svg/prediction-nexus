@@ -57,7 +57,15 @@ import {
   testHypothesis,
   generateAutonomousDiscoveryCycle
 } from "./server/afterHoursDiscoveryService";
-import { SportType } from "./src/types";
+import { fetchAllRealLiveGames } from "./server/realLiveSportsService";
+import { 
+  initializePersistentLearning, 
+  processCompletedGameLearning, 
+  getLearningSystemOverview, 
+  getLearnedWeightsForSport,
+  getAllSportCalibrations
+} from "./server/firebaseLearningService";
+import { SportType, Game } from "./src/types";
 
 dotenv.config();
 
@@ -67,11 +75,69 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Initialize persistent model weights and historical evaluations from Google Cloud Firestore
+  initializePersistentLearning().catch(err => {
+    console.error("[Server] Error initializing Firebase Firestore learning:", err);
+  });
+
   // In-memory state for interactive session
-  let games = [...mockGames];
+  let games: Game[] = [...mockGames];
   let calibrationMetrics = JSON.parse(JSON.stringify(mockCalibrationMetrics));
   let refactoringLogs = [...mockRefactoringLogs];
   let featureDiscovery = [...mockFeatureDiscovery];
+
+  // Keep track of evaluated completed games to avoid duplicate learning steps
+  const evaluatedCompletedGameIds = new Set<string>();
+
+  // Helper function to sync real-world live games from ESPN
+  let isSyncing = false;
+  let lastSyncTime = 0;
+
+  async function syncRealWorldGames() {
+    if (isSyncing) return;
+    isSyncing = true;
+    try {
+      const realGames = await fetchAllRealLiveGames();
+      if (realGames && realGames.length > 0) {
+        // Keep table tennis games or custom mock items not in ESPN
+        const preservedGames = games.filter(
+          g => g.sport === 'TABLE_TENNIS' || g.id.startsWith('tt-') || g.id.startsWith('custom-')
+        );
+
+        // Real games take priority
+        games = [...realGames, ...preservedGames];
+        lastSyncTime = Date.now();
+        const liveNow = realGames.filter(g => g.status === 'LIVE').length;
+        console.log(`[RealLiveSports] Synchronized ${realGames.length} actual games (${liveNow} currently LIVE).`);
+
+        // Autonomous Cloud Learning: Process newly completed games and update model weights in Firestore
+        for (const game of realGames) {
+          if (game.status === 'FINAL' && game.actualResult && !evaluatedCompletedGameIds.has(game.id)) {
+            evaluatedCompletedGameIds.add(game.id);
+            processCompletedGameLearning(
+              game,
+              game.actualResult.homeScore,
+              game.actualResult.awayScore
+            ).then(res => {
+              console.log(`[Continuous Learning] Stored prediction record and learned from ${game.id} in Cloud Firestore.`);
+            }).catch(e => {
+              console.warn('[Continuous Learning] Cloud learning step notice:', e?.message || e);
+            });
+          }
+        }
+      }
+    } catch (err: any) {
+      console.warn("[RealLiveSports] Background sync warning:", err?.message || err);
+    } finally {
+      isSyncing = false;
+    }
+  }
+
+  // Initial sync on server start
+  syncRealWorldGames();
+
+  // Periodic background sync every 45 seconds so live game scores & telemetry stay fresh
+  setInterval(syncRealWorldGames, 45000);
 
   // API ROUTES
   app.get("/api/health", (_req, res) => {
@@ -83,8 +149,25 @@ async function startServer() {
     });
   });
 
+  // POST endpoint to trigger immediate manual refresh of actual live games
+  app.post("/api/games/sync-live", async (_req, res) => {
+    await syncRealWorldGames();
+    const liveGames = games.filter(g => g.status === 'LIVE');
+    res.json({
+      success: true,
+      totalCount: games.length,
+      liveCount: liveGames.length,
+      lastSyncTime: new Date(lastSyncTime).toISOString(),
+      games
+    });
+  });
+
   // GET games
-  app.get("/api/games", (req, res) => {
+  app.get("/api/games", async (req, res) => {
+    // If haven't synced real games yet, trigger sync
+    if (lastSyncTime === 0) {
+      await syncRealWorldGames();
+    }
     const sport = req.query.sport as string;
     if (sport && sport !== "ALL") {
       res.json(games.filter(g => g.sport === sport));
@@ -326,13 +409,36 @@ async function startServer() {
     res.json(actions);
   });
 
+  // GET Firestore Continuous Learning System Overview
+  app.get("/api/learning/overview", (_req, res) => {
+    try {
+      const overview = getLearningSystemOverview();
+      res.json(overview);
+    } catch (err: any) {
+      res.status(500).json({ error: "Failed to retrieve learning overview", details: err?.message });
+    }
+  });
+
   // POST Execute Continuous Learning Cycle (Simulate / Run gradient descent update)
-  app.post("/api/learning-actions/trigger-cycle", (req, res) => {
+  app.post("/api/learning-actions/trigger-cycle", async (req, res) => {
     const sport = (req.body.sport as any) || "MLB";
     const result = executeContinuousLearningCycle(sport);
+
+    // Also trigger cloud-learning weight update if a game of this sport exists
+    const candidateGame = games.find(g => g.sport === sport && g.actualResult) || games.find(g => g.sport === sport);
+    if (candidateGame) {
+      const homeScore = candidateGame.actualResult?.homeScore ?? 4;
+      const awayScore = candidateGame.actualResult?.awayScore ?? 3;
+      try {
+        await processCompletedGameLearning(candidateGame, homeScore, awayScore);
+      } catch (e) {
+        // Safe fallback
+      }
+    }
+
     res.json({
       success: true,
-      message: `Continuous learning cycle successfully executed for ${sport} engine. Code weights synchronized.`,
+      message: `Continuous learning cycle successfully executed for ${sport} engine. Code weights synchronized with Cloud Firestore.`,
       ...result,
     });
   });

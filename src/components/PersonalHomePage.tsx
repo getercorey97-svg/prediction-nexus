@@ -18,7 +18,8 @@ import {
   Zap,
   Sliders,
   XCircle,
-  Play
+  Play,
+  RefreshCw
 } from 'lucide-react';
 import { Game, SportType, UserSession } from '../types';
 import { GameBacktestModal } from './GameBacktestModal';
@@ -33,6 +34,7 @@ interface PersonalHomePageProps {
   onNavigateToAccuracyLedger: () => void;
   onNavigateToAfterHours?: () => void;
   onGameUpdated?: (updatedGame: Game) => void;
+  onRefreshLiveGames?: () => Promise<void> | void;
 }
 
 export const PersonalHomePage: React.FC<PersonalHomePageProps> = ({
@@ -44,14 +46,31 @@ export const PersonalHomePage: React.FC<PersonalHomePageProps> = ({
   onNavigateToAccuracyLedger,
   onNavigateToAfterHours,
   onGameUpdated,
+  onRefreshLiveGames,
 }) => {
   // Game Status Filter: 'LIVE' | 'UPCOMING' | 'FINAL'
   const [activeGameTab, setActiveGameTab] = useState<'LIVE' | 'UPCOMING' | 'FINAL'>('LIVE');
   const [selectedSportFilter, setSelectedSportFilter] = useState<SportType | 'ALL'>('ALL');
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Interactive Control Center Modal State
   const [backtestGame, setBacktestGame] = useState<Game | null>(null);
   const [calibrationGame, setCalibrationGame] = useState<Game | null>(null);
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      if (onRefreshLiveGames) {
+        await onRefreshLiveGames();
+      } else {
+        await fetch('/api/games/sync-live', { method: 'POST' });
+      }
+    } catch (err) {
+      console.error('Error refreshing live games:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Filter games based on tab and optional sport filter
   const tabGames = games.filter(g => {
@@ -547,7 +566,7 @@ export const PersonalHomePage: React.FC<PersonalHomePageProps> = ({
       {/* ========================================================================= */}
       <div className="p-6 rounded-2xl bg-[#0f1422] border border-[#1f283b] space-y-5">
         {/* Navigation Tabs Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#1c2538]">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#1c2538]">
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setActiveGameTab('LIVE')}
@@ -586,22 +605,51 @@ export const PersonalHomePage: React.FC<PersonalHomePageProps> = ({
             </button>
           </div>
 
-          {/* Sport filter dropdown */}
-          <div className="flex items-center space-x-2">
-            <span className="text-[11px] font-mono text-slate-400">Filter Sport:</span>
-            <div className="flex bg-[#141b2b] p-0.5 rounded-lg border border-[#23314a]">
-              {(['ALL', 'MLB', 'NFL', 'CFB', 'TABLE_TENNIS'] as const).map(s => (
-                <button
-                  key={s}
-                  onClick={() => setSelectedSportFilter(s)}
-                  className={`px-2.5 py-1 text-xs font-mono rounded ${
-                    selectedSportFilter === s ? 'bg-cyan-500 text-slate-950 font-bold' : 'text-slate-400'
-                  }`}
-                >
-                  {s === 'TABLE_TENNIS' ? 'TT' : s}
-                </button>
-              ))}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Sync live button */}
+            <button
+              onClick={handleManualSync}
+              disabled={isSyncing}
+              className="px-3.5 py-1.5 rounded-lg bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-300 hover:text-cyan-200 text-xs font-mono font-semibold transition-all flex items-center space-x-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
+              title="Poll live scoreboard feeds for real-time scores, outs & innings"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-cyan-400' : 'text-cyan-400'}`} />
+              <span>{isSyncing ? 'Syncing Live Feeds...' : 'Sync Real Games'}</span>
+            </button>
+
+            {/* Sport filter dropdown */}
+            <div className="flex items-center space-x-2">
+              <span className="text-[11px] font-mono text-slate-400">Sport:</span>
+              <div className="flex bg-[#141b2b] p-0.5 rounded-lg border border-[#23314a]">
+                {(['ALL', 'MLB', 'NFL', 'CFB', 'TABLE_TENNIS'] as const).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setSelectedSportFilter(s)}
+                    className={`px-2.5 py-1 text-xs font-mono rounded transition-colors ${
+                      selectedSportFilter === s ? 'bg-cyan-500 text-slate-950 font-bold' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {s === 'TABLE_TENNIS' ? 'TT' : s}
+                  </button>
+                ))}
+              </div>
             </div>
+          </div>
+        </div>
+
+        {/* Real-time sync banner */}
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-[#121927] border border-[#1e2a3f] text-xs font-mono">
+          <div className="flex items-center space-x-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <span className="text-emerald-400 font-bold">REAL-WORLD SCOREBOARD SYNC ACTIVE</span>
+            <span className="text-slate-400 hidden sm:inline">• Official MLB, NFL & CFB live telemetry with calibrated Nexus mathematical edges</span>
+          </div>
+          <div className="text-slate-400 text-[11px]">
+            {liveCount > 0 ? (
+              <span className="text-rose-400 font-bold">🔴 {liveCount} Live Game{liveCount > 1 ? 's' : ''} Active Now</span>
+            ) : (
+              <span className="text-slate-400">All games finalized or upcoming</span>
+            )}
           </div>
         </div>
 

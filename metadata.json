@@ -1,6 +1,6 @@
 {
   "name": "The Prediction Nexus",
-  "description": "Zero-fabrication multi-sport prediction platform with after-hours quantitative alpha discovery, user hypothesis testing, 50k Monte Carlo table tennis simulations, and automatic multi-sport backtesting.",
+  "description": "Zero-fabrication multi-sport prediction platform with live scoreboard ingestion, Google Cloud Firestore continuous learning, adaptive weight recalibration, after-hours quantitative alpha discovery, and automatic backtesting.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

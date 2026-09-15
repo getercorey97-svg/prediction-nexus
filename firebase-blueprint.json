@@ -1,0 +1,70 @@
+{
+  "entities": {
+    "prediction_records": {
+      "title": "Prediction Record",
+      "description": "Historical prediction records tracking predicted probabilities against realized outcomes",
+      "type": "object",
+      "properties": {
+        "gameId": { "type": "string" },
+        "sport": { "type": "string" },
+        "matchup": { "type": "string" },
+        "predictionTarget": { "type": "string" },
+        "calibratedProb": { "type": "number" },
+        "consensusProb": { "type": "number" },
+        "edgePct": { "type": "number" },
+        "actualOutcome": { "type": "string" },
+        "isCorrect": { "type": "boolean" },
+        "brierScore": { "type": "number" },
+        "weightsUsed": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["gameId", "sport", "matchup", "timestamp"]
+    },
+    "sport_calibrations": {
+      "title": "Sport Calibration",
+      "description": "Continuously calibrated and optimized weights for each sport model",
+      "type": "object",
+      "properties": {
+        "sport": { "type": "string" },
+        "weatherWeight": { "type": "number" },
+        "marketOddsWeight": { "type": "number" },
+        "pitchingOrQbWeight": { "type": "number" },
+        "recentFormWeight": { "type": "number" },
+        "totalEvaluatedGames": { "type": "number" },
+        "currentBrierScore": { "type": "number" },
+        "expectedCalibrationError": { "type": "number" },
+        "lastCalibratedAt": { "type": "string" }
+      },
+      "required": ["sport", "weatherWeight", "marketOddsWeight", "pitchingOrQbWeight", "recentFormWeight"]
+    },
+    "learning_events": {
+      "title": "Learning Event",
+      "description": "Log entry tracking every autonomous model parameter shift and weight adjustment",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sport": { "type": "string" },
+        "triggerGameId": { "type": "string" },
+        "eventDescription": { "type": "string" },
+        "weightShift": { "type": "string" },
+        "brierDelta": { "type": "number" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "sport", "eventDescription", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/prediction_records/{recordId}": {
+      "schema": "prediction_records",
+      "description": "Global permanent ledger of model predictions and evaluated outcomes"
+    },
+    "/sport_calibrations/{sportId}": {
+      "schema": "sport_calibrations",
+      "description": "Active learned model weights tuned per sport"
+    },
+    "/learning_events/{eventId}": {
+      "schema": "learning_events",
+      "description": "Audit trail of continuous model weight updates and learning triggers"
+    }
+  }
+}
